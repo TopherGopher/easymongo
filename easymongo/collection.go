@@ -180,7 +180,9 @@ func (c *Collection) DeleteOne()                {}
 func (c *Collection) DeleteMany()               {}
 func (c *Collection) DeleteByID(id interface{}) {}
 
-func (c *Collection) Insert() *InsertQuery {}
+func (c *Collection) Insert() *InsertQuery {
+	return &InsertQuery{}
+}
 
 // func (c *Collection) InsertMany() {}
 

@@ -175,11 +175,12 @@ func (tc *TestConnection) StartMongoContainer(portNumber int) (containerID strin
 	}
 	pName := fmt.Sprintf("%d/tcp", portNumber)
 	containerName := fmt.Sprintf("mongo-%d", portNumber)
+	// TODO: Initial container pull can take some time - explicitly pull?
 	containerResp, err := tc.dockerClient.ContainerCreate(
 		context.Background(),
 		&container.Config{
 			// TODO: Allow setting mongo version
-			Image: "mongo",
+			Image: "registry.hub.docker.com/library/mongo:latest",
 			Labels: map[string]string{
 				"mongotest": "regression",
 			},

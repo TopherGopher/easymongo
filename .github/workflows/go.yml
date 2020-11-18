@@ -43,8 +43,8 @@ jobs:
     - name: Get dependencies
       run: |
         go get -v -t -d ./...
-    # - name: Get mongo image
-    #   run: docker pull registry.hub.docker.com/library/mongo
+    - name: Get mongo image
+      run: docker pull registry.hub.docker.com/library/mongo
 
     - name: Test
       run: go test -v .

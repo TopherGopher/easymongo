@@ -28,7 +28,6 @@ type TestConnection struct {
 	dockerClient     *docker.Client
 	logger           *logrus.Entry
 	mongoContainerID string
-	mongoURI         string
 }
 
 // NewTestConnection is the standard method for initializing a TestConnection - it has a side-effect
@@ -36,9 +35,9 @@ type TestConnection struct {
 func NewTestConnection(spinupDockerContainer bool) (*TestConnection, error) {
 	// TODO: How should we be handling logging? What do the base packages do?
 	logger := logrus.New().WithField("src", "mongotest.TestConnection")
+	mongoURI := "mongodb://127.0.0.1"
 	testConn := &TestConnection{
-		logger:   logger,
-		mongoURI: "mongodb://127.0.0.1",
+		logger: logger,
 	}
 	defer func() {
 		if err := recover(); err != nil {
@@ -72,13 +71,13 @@ func NewTestConnection(spinupDockerContainer bool) (*TestConnection, error) {
 			return testConn, err
 		}
 		testConn.mongoContainerID = containerID
-		testConn.mongoURI = fmt.Sprintf("%s:%d", testConn.mongoURI, portNumber)
+		mongoURI = fmt.Sprintf("%s:%d", mongoURI, portNumber)
 	}
-	conn, err := easymongo.ConnectWithOptions(testConn.mongoURI, nil)
+	conn, err := easymongo.ConnectWithOptions(mongoURI, nil)
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"err":      err,
-			"mongoURI": testConn.mongoURI,
+			"mongoURI": mongoURI,
 		}).Error("Could not connect to mongo instance")
 		return testConn, err
 	}
@@ -101,7 +100,7 @@ func NewTestConnection(spinupDockerContainer bool) (*TestConnection, error) {
 	if err != nil {
 		logger.WithFields(logrus.Fields{
 			"err":      err,
-			"mongoURI": testConn.mongoURI,
+			"mongoURI": mongoURI,
 		}).Errorf("Could not ping the test mongo instance after %d checks", numChecks)
 		// Try to teardown the mongo container (it might not have started)
 		_ = testConn.KillMongoContainer()

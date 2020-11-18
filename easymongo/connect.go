@@ -44,7 +44,8 @@ func ConnectWithOptions(mongoURI string, mongoOpts *MongoConnectOptions) (*Conne
 		return nil, err
 	}
 	conn := &Connection{
-		client: client,
+		client:   client,
+		mongoURI: mongoURI,
 	}
 	if mongoOpts != nil {
 		conn.mongoOptions = *mongoOpts
@@ -55,9 +56,12 @@ func ConnectWithOptions(mongoURI string, mongoOpts *MongoConnectOptions) (*Conne
 
 // ConnectUsingMongoClient accepts an initialized mongo.Client and returns an easymongo Connection
 // This is useful if you want the power of standing up your own mongo.Client connection.
-func ConnectUsingMongoClient(client *mongo.Client) *Connection {
+// mongoURI is used for informational purposes - feel free to ignore it if you don't need it.
+func ConnectUsingMongoClient(client *mongo.Client, mongoURI string) *Connection {
+	// client.Connect(nil)
 	conn := &Connection{
-		client: client,
+		client:   client,
+		mongoURI: mongoURI,
 	}
 	// TODO: Consider accepting MongoOptions
 	// if defaultTimeout != nil {
@@ -71,6 +75,7 @@ func ConnectUsingMongoClient(client *mongo.Client) *Connection {
 type Connection struct {
 	mongoOptions MongoConnectOptions
 	client       *mongo.Client
+	mongoURI     string
 }
 
 // Ping attempts to ping the mongo instance
@@ -111,7 +116,7 @@ func (conn *Connection) DatabaseNames() []string {
 	ctx, _ := conn.GetDefaultTimeoutCtx()
 	list, err := conn.client.ListDatabaseNames(ctx, bson.M{}, opts)
 	if err != nil {
-		// TODO: Should we return the error instead?
+		// TODO: Should we return the error instead? If we don't change this, we should change CollectionNames()
 		list = []string{}
 	}
 	return list
@@ -160,4 +165,10 @@ func GetCurrentConnection() *Connection {
 		panic("Connect() or ConnectWithOptions() must be called prior to GetCurrentConnection()")
 	}
 	return globalConnection
+}
+
+// MongoURI returns the URI of the mongo instance the test connection
+// is tethered to.
+func (conn *Connection) MongoURI() string {
+	return conn.mongoURI
 }

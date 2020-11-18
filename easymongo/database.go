@@ -92,5 +92,10 @@ func (db *Database) Drop() error {
 	return db.mongoDB.Drop(ctx)
 }
 
+// Name returns the name of the database
+func (db *Database) Name() string {
+	return db.dbName
+}
+
 // TODO: DB.FindRef
 // func (db *Database) FindRef(ref *DBRef) *Query {return }

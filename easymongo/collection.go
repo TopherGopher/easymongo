@@ -181,7 +181,11 @@ func (c *Collection) DeleteMany()               {}
 func (c *Collection) DeleteByID(id interface{}) {}
 
 func (c *Collection) Insert() *InsertQuery {
-	return &InsertQuery{}
+	return &InsertQuery{
+		Query: Query{
+			collection: c,
+		},
+	}
 }
 
 // func (c *Collection) InsertMany() {}

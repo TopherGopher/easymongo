@@ -27,4 +27,8 @@ func TestInsert(t *testing.T) {
 		is.NoError(err, "Could not look-up the zeus record in the DB")
 		is.Equal("Zeus", zeusLookup.Name, "The record appears to have improper information in it")
 	})
+	// TODO: Test IsDup failure path
+	t.Run("Insert().Many()", func(t *testing.T) {
+		t.Skipf("// TODO: Insert().Many()")
+	})
 }

@@ -8,6 +8,7 @@ package mongotest
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"runtime/debug"
 	"strconv"
@@ -31,9 +32,15 @@ type TestConnection struct {
 }
 
 // NewTestConnection is the standard method for initializing a TestConnection - it has a side-effect
-// of spawning a new docker container
+// of spawning a new docker container if spinupDockerContainer is set to true.
+// Note that the first time this is called on a new system, the mongo docker
+// container will be pulled. Any subsequent calls on the system should succeed without
+// calls to pull.
+// If spinupDockerContainer is False, then no docker shenanigans occur, instead
+// an attempt is made to connect to a locally running mongo instance
+// (e.g. mongodb://127.0.0.1:27017).
 func NewTestConnection(spinupDockerContainer bool) (*TestConnection, error) {
-	// TODO: How should we be handling logging? What do the base packages do?
+	// TODO: How should we be handling logging? What do other libraries typically do?
 	logger := logrus.New().WithField("src", "mongotest.TestConnection")
 	mongoURI := "mongodb://127.0.0.1"
 	testConn := &TestConnection{
@@ -46,9 +53,6 @@ func NewTestConnection(spinupDockerContainer bool) (*TestConnection, error) {
 				"stack": string(debug.Stack()),
 			}).Error("A panic occurred when trying to initialize a TestConnection")
 			// Initialization crashed - ensure the mongo container is destroyed
-			// if err = testConn.KillMongoContainer(); err != nil {
-			// 	logger.WithField("err", err).Error("Could not kill mongo container after TestConnection panic")
-			// }
 			_ = testConn.KillMongoContainer()
 		}
 	}()
@@ -141,29 +145,27 @@ func GetAvailablePort() (port int, err error) {
 	if err != nil {
 		return 0, err
 	}
-	// Now try to listen/read on it - just for a few tics
-	// Calling this makes osx prompt for firewall/network permission
-	// conn, err := server.Accept()
-	// defer conn.Close()
-	// err = conn.SetReadDeadline(time.Now().Add(time.Minute))
-	// if err != nil {
-	// 	return 0, err
-	// }
-	// TODO: Fix this check
-	// go func() {
-	// 	b := []byte{}
-	// 	_, err = conn.Read(b)
-	// 	if err != nil {
-	// 		// return 0, err
-	// 		panic(err)
-	// 	}
-	// }()
-	// // Write to connection
-	// _, err = conn.Write([]byte{1})
 
 	// Return the port as an int
 	// TODO: This is used as a string elsewhere - consider string
 	return strconv.Atoi(portString)
+}
+
+// pullMongoContainer fetches the mongo container from dockerhub
+func (tc *TestConnection) pullMongoContainer(mongoImageName string) (err error) {
+	// TODO: Is this better to do as an error handler?
+	// Pull the initial container
+	tc.logger.Info("Starting mongo docker image pull")
+	rc, err := tc.dockerClient.ImagePull(context.Background(), mongoImageName, types.ImagePullOptions{})
+	defer rc.Close()
+	if err != nil {
+		return fmt.Errorf("could not pull mongo container: %v", err)
+	}
+	if _, err := ioutil.ReadAll(rc); err != nil {
+		return fmt.Errorf("could not pull mongo container: %v", err)
+	}
+	tc.logger.Info("Done pulling mongo docker image")
+	return nil
 }
 
 // StartMongoContainer starts a mongo docker container
@@ -177,12 +179,7 @@ func (tc *TestConnection) StartMongoContainer(portNumber int) (containerID strin
 	containerName := fmt.Sprintf("mongo-%d", portNumber)
 
 	mongoImageName := "registry.hub.docker.com/library/mongo:latest"
-	// TODO: Explicitly pull the initial container - ensure user feedback is in place
-	// rc, err := tc.dockerClient.ImagePull(nil, mongoImageName, types.ImagePullOptions{})
-	// defer rc.Close()
-	// if err != nil {
 
-	// }
 	containerResp, err := tc.dockerClient.ContainerCreate(
 		context.Background(),
 		&container.Config{
@@ -210,7 +207,16 @@ func (tc *TestConnection) StartMongoContainer(portNumber int) (containerID strin
 		// TODO: Does this config also need to be specified?
 		&network.NetworkingConfig{},
 		containerName)
-	if err != nil {
+	if err != nil && docker.IsErrNotFound(err) {
+		// The image didn't exist locally - go grab it
+		if err = tc.pullMongoContainer(mongoImageName); err != nil {
+			// The pull didn't succeed, bail
+			tc.logger.WithField("err", err).Error("Could not pull the docker container")
+			return "", err
+		}
+		// Now that the pull is complete, we can try to call start again
+		return tc.StartMongoContainer(portNumber)
+	} else if err != nil {
 		tc.logger.WithField("err", err).Error("Could not create the docker container")
 		return "", err
 	}

@@ -180,6 +180,8 @@ func (c *Collection) DeleteOne()                {}
 func (c *Collection) DeleteMany()               {}
 func (c *Collection) DeleteByID(id interface{}) {}
 
+// Insert constructs and returns an InsertQuery object.
+// Now run .One() or .Many() using this handle.
 func (c *Collection) Insert() *InsertQuery {
 	return &InsertQuery{
 		Query: Query{
@@ -187,8 +189,6 @@ func (c *Collection) Insert() *InsertQuery {
 		},
 	}
 }
-
-// func (c *Collection) InsertMany() {}
 
 // ReplaceOne wraps FindOneAndReplace which wraps findAndModify().
 // TODO: What is the performance trade-off between using the update style replace versus

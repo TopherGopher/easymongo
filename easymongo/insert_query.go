@@ -27,28 +27,24 @@ func (iq *InsertQuery) One(objToInsert interface{}) (id *primitive.ObjectID, err
 }
 
 // Many inserts a slice into a mongo collection
-func (iq *InsertQuery) Many(objsToInsert ...interface{}) (ids []*primitive.ObjectID, err error) {
+func (iq *InsertQuery) Many(objsToInsert interface{}) (ids []*primitive.ObjectID, err error) {
 	ctx, cancelFunc := iq.getContext()
 	defer cancelFunc()
 	// TODO: InsertMany options
 	opts := options.InsertMany()
-	if len(objsToInsert) == 0 {
-		return nil, fmt.Errorf("Insert().Many() requires at least one object to insert")
+
+	if interfaceIsZero(objsToInsert) {
+		return nil, fmt.Errorf("the value provided to Insert().Many() must be defined")
+	}
+	iSlice, err := interfaceSlice(objsToInsert)
+	if err != nil {
+		return nil, err
 	}
 
-	// // TODO: Is interfaceIsZero redundant with CanInterface()?
-	// if interfaceIsZero(sliceToInsert) {
-	// 	return nil, fmt.Errorf("the value provided to Insert().Many() must be defined")
-	// }
-	// s := reflect.ValueOf(sliceToInsert).Elem()
-	// if s.Kind() != reflect.Slice {
-	// 	return nil, fmt.Errorf("the value provided to Insert().Many() must be a slice")
-	// }
-	// if !s.CanInterface() {
-	// 	return nil, fmt.Errorf("the interface was not valid")
-	// }
-
-	result, err := iq.collection.mongoColl.InsertMany(ctx, objsToInsert, opts)
+	result, err := iq.collection.mongoColl.InsertMany(ctx, iSlice, opts)
+	if err != nil {
+		return ids, err
+	}
 	ids = make([]*primitive.ObjectID, len(result.InsertedIDs))
 	for i, ridIface := range result.InsertedIDs {
 		if rid, ok := ridIface.(primitive.ObjectID); ok {

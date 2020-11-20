@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 func TestInsert(t *testing.T) {
@@ -29,6 +30,13 @@ func TestInsert(t *testing.T) {
 	})
 	// TODO: Test IsDup failure path
 	t.Run("Insert().Many()", func(t *testing.T) {
-		t.Skipf("// TODO: Insert().Many()")
+		is := assert.New(t)
+		ids, err := coll.Insert().Many(&[]greekGod{{Name: "Hera"}, {Name: "Hades"}})
+		is.NoError(err, "Insert().Many() failed")
+		is.Len(ids, 2, "2 IDs should have been returned from the insert")
+		var godLookup []greekGod
+		err = coll.Find(bson.M{}).All(&godLookup)
+		is.NoError(err, "Could not find any documents")
+		is.Len(godLookup, 3, "After the previous test and this test, there should be 3 documents")
 	})
 }

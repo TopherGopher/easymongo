@@ -35,7 +35,7 @@ func TestInsert(t *testing.T) {
 		is.NoError(err, "Insert().Many() failed")
 		is.Len(ids, 2, "2 IDs should have been returned from the insert")
 		var godLookup []greekGod
-		err = coll.Find(bson.M{}).All(&godLookup)
+		err = coll.Find(bson.M{}).Many(&godLookup)
 		is.NoError(err, "Could not find any documents")
 		is.Len(godLookup, 3, "After the previous test and this test, there should be 3 documents")
 	})

@@ -25,10 +25,10 @@ func (q *FindQuery) Limit(limit int) *FindQuery {
 	return q
 }
 
-// All executes the specified query using find() and unmarshals
+// Many executes the specified query using find() and unmarshals
 // the result into the provided interface. Ensure interface{} is either
 // a slice or a pointer to a slice.
-func (q *FindQuery) All(results interface{}) error {
+func (q *FindQuery) Many(results interface{}) error {
 	// TODO: Check kind ot make sure it's a slice or map
 	opts := q.FindOptions()
 	ctx, cancelFunc := q.getContext()

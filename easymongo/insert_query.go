@@ -27,12 +27,10 @@ func (iq *InsertQuery) One(objToInsert interface{}) (id *primitive.ObjectID, err
 }
 
 // Many inserts a slice into a mongo collection
+// Note: Many() uses reflect to coerce an interface to an interface slice. This results in
+// a minor O(N) performance hit. If inserting large quanities of items and every nanosecond counts,
+// cast your slice to a slice interface yourself (which is an O(1) operation), and call ManyFromInterfaceSlice().
 func (iq *InsertQuery) Many(objsToInsert interface{}) (ids []*primitive.ObjectID, err error) {
-	ctx, cancelFunc := iq.getContext()
-	defer cancelFunc()
-	// TODO: InsertMany options
-	opts := options.InsertMany()
-
 	if interfaceIsZero(objsToInsert) {
 		return nil, fmt.Errorf("the value provided to Insert().Many() must be defined")
 	}
@@ -40,8 +38,20 @@ func (iq *InsertQuery) Many(objsToInsert interface{}) (ids []*primitive.ObjectID
 	if err != nil {
 		return nil, err
 	}
+	return iq.ManyFromInterfaceSlice(iSlice)
 
-	result, err := iq.collection.mongoColl.InsertMany(ctx, iSlice, opts)
+}
+
+// ManyFromInterfaceSlice inserts an interface slice into a mongo collection
+// If you need to insert large quantities of items and every nanosecond matters,
+// then use this function instead of Many.
+func (iq *InsertQuery) ManyFromInterfaceSlice(objsToInsert []interface{}) (ids []*primitive.ObjectID, err error) {
+	ctx, cancelFunc := iq.getContext()
+	defer cancelFunc()
+	// TODO: InsertMany options
+	opts := options.InsertMany()
+
+	result, err := iq.collection.mongoColl.InsertMany(ctx, objsToInsert, opts)
 	if err != nil {
 		return ids, err
 	}

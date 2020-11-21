@@ -56,4 +56,13 @@ jobs:
       uses: coverallsapp/github-action@v1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: coverage.1.out
+        path-to-lcov: ./easymongo/coverage.1.out
+        flag-name: "easymongo"
+
+    - name: Coveralls GitHub Action
+      uses: coverallsapp/github-action@v1.1.2
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        path-to-lcov: ./pkg/mongotest/coverage.2.out
+        flag-name: "mongotest"
+        base-path: "pkg/mongotest"

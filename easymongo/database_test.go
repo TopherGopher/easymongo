@@ -3,7 +3,7 @@ package easymongo_test
 import (
 	"testing"
 
-	"github.com/TopherGopher/easymongo"
+	"github.com/tophergopher/easymongo"
 	"github.com/stretchr/testify/assert"
 )
 

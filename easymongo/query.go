@@ -3,6 +3,8 @@ package easymongo
 import (
 	"context"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Query is used for creating
@@ -22,10 +24,20 @@ type Query struct {
 	filter      interface{}
 	sortFields  []string
 	hintIndices []string
-	comment     string
+	comment     *string
+	collation   *options.Collation
 	timeout     *time.Duration
 	collection  *Collection
 	many        bool
+}
+
+// Query returns an initialized query object from a collection
+func (c *Collection) Query(filter interface{}) *Query {
+	return &Query{
+		filter:     filter,
+		collection: c,
+		timeout:    c.database.connection.mongoOptions.defaultTimeout,
+	}
 }
 
 // Sort accepts a list of strings to use as sort fields.
@@ -38,6 +50,8 @@ func (q *Query) Sort(fields ...string) *Query {
 
 // Hint allows a user to specify index key(s) and supplies these to
 // .hint() - this can result in query optimization.
+// This should either be the index name as a string or the index specification
+// as a document.
 func (q *Query) Hint(indexKey ...string) *Query {
 	q.hintIndices = indexKey
 	return q
@@ -46,15 +60,23 @@ func (q *Query) Hint(indexKey ...string) *Query {
 // Comment adds a comment to the query - when the query is executed, this
 // comment can help with debugging from the logs.
 func (q *Query) Comment(comment string) *Query {
-	q.comment = comment
+	q.comment = &comment
 	return q
 }
 
-// SetTimeout uses the provided duration to set a timeout value using
+// Timeout uses the provided duration to set a timeout value using
 // a context. The timeout clock begins upon query execution (e.g. calling .All()),
-// not at time of calling SetTimeout().
-func (q *Query) SetTimeout(d time.Duration) *Query {
+// not at time of calling Timeout().
+func (q *Query) Timeout(d time.Duration) *Query {
 	q.timeout = &d
+	return q
+}
+
+// Collation allows users to specify language-specific rules for string comparison, such as rules for lettercase and accent marks.
+// https://docs.mongodb.com/manual/reference/collation/
+// TODO: Create helpers and consts for Collation
+func (q *Query) Collation(c *options.Collation) *Query {
+	q.collation = c
 	return q
 }
 

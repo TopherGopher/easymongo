@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/TopherGopher/easymongo"
+	"github.com/tophergopher/easymongo"
 
 	"github.com/TopherGopher/pkg/mongotest"
 	"github.com/stretchr/testify/assert"

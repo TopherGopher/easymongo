@@ -68,20 +68,6 @@ func (c *Collection) Count() (int, error) {
 	return int(count), err
 }
 
-// Find allows a user to execute a standard find() query.
-// The usage of find() or findOne() is determined by whether a user calls
-// q.One() or q.All().
-// TODO: Consider using bsoncore.Doc rather than interface?
-func (c *Collection) Find(query interface{}) (q *FindQuery) {
-	q = &FindQuery{
-		Query: Query{
-			filter:     query,
-			collection: c,
-		},
-	}
-	return q
-}
-
 // FindByID wraps Find, ultimately executing `findOne("_id": providedID)`
 // Typically, the provided id is a pointer to a *primitive.ObjectID.
 func (c *Collection) FindByID(id interface{}, result interface{}) (err error) {
@@ -190,18 +176,7 @@ func (c *Collection) Insert() *InsertQuery {
 	}
 }
 
-// ReplaceOne returns a ReplaceQuery. Trying running `.One()` against this.
-// This is used to replace an entire object. If you are looking to update just part of a document
-// you should probably be using Update.
-func (c *Collection) Replace(filter interface{}, obj interface{}) *ReplaceQuery {
-	return &ReplaceQuery{
-		newObj: obj,
-		Query: Query{
-			filter: filter,
-		},
-	}
-}
-
+// ReplaceByID is a friendly helper that wraps Replace(bson.M{"_id": id}, obj).Execute()
 func (c *Collection) ReplaceByID(id interface{}, obj interface{}) (err error) {
-	return c.Replace(bson.M{"_id": id}, obj).Do(nil)
+	return c.Replace(bson.M{"_id": id}, obj).Execute()
 }

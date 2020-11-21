@@ -57,7 +57,7 @@ jobs:
       with:
         infile: coverage.easymongo.out
         outfile: coverage.easymongo.lcov
-        working-directory: ./easymongo
+        workspace: ./easymongo
 
     - name: Upload easymongo code coverage to Coveralls
       uses: coverallsapp/github-action@v1.1.2
@@ -72,7 +72,7 @@ jobs:
       with:
         infile: coverage.mongotest.out
         outfile: coverage.mongotest.lcov
-        working-directory: ./pkg/mongotest/
+        workspace: ./pkg/mongotest/
 
     - name: Upload mongotest code coverage to Coveralls
       uses: coverallsapp/github-action@v1.1.2

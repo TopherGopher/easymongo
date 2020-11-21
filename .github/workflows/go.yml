@@ -52,18 +52,32 @@ jobs:
       run: go test -v -race -covermode atomic -coverprofile=coverage.2.out .
       working-directory: ./pkg/mongotest
 
-    - name: Coveralls GitHub Action
+    - name: Convert code coverage for easymongo
+      uses: jandelgado/gcov2lcov-action@v1.0.5
+      with:
+        infile: coverage.easymongo.out
+        outfile: coverage.easymongo.lcov
+        working-directory: ./easymongo
+
+    - name: Upload easymongo code coverage to Coveralls
       uses: coverallsapp/github-action@v1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./easymongo/coverage.1.out
+        path-to-lcov: ./easymongo/coverage.easymongo.lcov
         flag-name: "easymongo"
         base-path: "easymongo"
 
-    - name: Coveralls GitHub Action
+    - name: Convert code coverage for mongotest
+      uses: jandelgado/gcov2lcov-action@v1.0.5
+      with:
+        infile: coverage.mongotest.out
+        outfile: coverage.mongotest.lcov
+        working-directory: ./pkg/mongotest/
+
+    - name: Upload mongotest code coverage to Coveralls
       uses: coverallsapp/github-action@v1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./pkg/mongotest/coverage.2.out
+        path-to-lcov: ./pkg/mongotest/coverage.mongotest.lcov
         flag-name: "mongotest"
         base-path: "pkg/mongotest"

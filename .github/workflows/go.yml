@@ -52,7 +52,7 @@ jobs:
       with:
         infile: coverage.out
         outfile: coverage.lcov
-`
+
     - name: Upload code coverage to Coveralls for package
       uses: coverallsapp/github-action@v1.1.2
       with:

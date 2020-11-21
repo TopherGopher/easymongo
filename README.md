@@ -68,8 +68,3 @@ Anyone is welcome to submit PRs. Please ensure there is test coverage before sub
 - [ ] Create docs on using bson tags
 - [ ] Link to mongo-go-driver docs where appropriate
 - [ ] Change Do() to Execute()
-
-#### The Genesis
-I started out with Golang and mongo by consuming the mgo library. I enjoyed it, but found the fact that it was radically out of date to be off-putting. When we were looking at migrating to DocumentDB with AWS, we realized that the mgo driver we were using was not compatible for a lot of our common operations, so it was obvious it was time to upgrade. I helped my company rewrite a massive library to consume mongo-go-driver. I found the experience...frustrasting to say the least. With the excellent support of the mongo-go-driver team though (through Slack, email and video calls), we were able to complete the transition and get things working properly. All the lines of code were more verbose and felt more error prone. (It was easy to miss checking for a context error even though one checked for the cursor Decode error for example.)
-
-Frustration breeds creativity though - after a lot of careful thought and some back and forth with the mongo-go-driver core development team, I set forth to create a balance. I wanted something simpler - less lines of code to consume but still leveraging the power of the new driver. Thus `easymongo` was born.

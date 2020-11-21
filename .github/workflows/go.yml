@@ -45,11 +45,11 @@ jobs:
         go get -v -t -d ./...
 
     - name: Test easymongo
-      run: go test -v -race -covermode atomic -coverprofile=coverage.easymongo.out .
+      run: go test -v -race -covermode count -coverprofile=coverage.easymongo.out .
       working-directory: ./easymongo
 
     - name: Test mongotest
-      run: go test -v -race -covermode atomic -coverprofile=coverage.mongotest.out .
+      run: go test -v -race -covermode count -coverprofile=coverage.mongotest.out .
       working-directory: ./pkg/mongotest
 
     - name: Convert code coverage for easymongo

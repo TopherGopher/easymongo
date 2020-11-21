@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TopherGopher/easymongo"
+
 	"github.com/TopherGopher/pkg/mongotest"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -33,18 +35,35 @@ type enemy struct {
 	LastEncounter time.Time          `bson:"lastEncounter"`
 }
 
-func createBatmanArchiveUsingMongoDriver(t *testing.T) (dbName, collName string) {
+// Create some test data
+func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	is := assert.New(t)
-	dbName = "batman_archive"
-	collName = "enemies"
-
-	enemies := []interface{}{
-		enemy{ID: primitive.NewObjectID(), Name: "The Joker"},
-		enemy{ID: primitive.NewObjectID(), Name: "Superman (depending on the day)"},
+	dbName := "batman_archive"
+	collName := "enemies"
+	coll := conn.GetDatabase(dbName).C(collName)
+	enemies := []enemy{
+		0: {ID: primitive.NewObjectID(), Name: "The Joker"},
+		1: {ID: primitive.NewObjectID(), Name: "Superman (depending on the day)"},
+		2: {Name: "Poison Ivy"},
 	}
-	// Perform the insert using the MongoDriverClient to avoid potential test cross-reference issues
-	_, err := conn.MongoDriverClient().Database(dbName).Collection(collName).InsertMany(
-		nil, enemies)
-	is.NoError(err, "Could not setup insert test response for collection setup")
-	return dbName, collName
+	ids, err := coll.Insert().Many(enemies)
+	is.NoError(err, "Couldn't setup the collection for the test")
+	is.Len(ids, 3)
+	return coll
 }
+
+// func createBatmanArchiveUsingMongoDriver(t *testing.T) (dbName, collName string) {
+// 	is := assert.New(t)
+// 	dbName = "batman_archive"
+// 	collName = "enemies"
+
+// 	enemies := []interface{}{
+// 		enemy{ID: primitive.NewObjectID(), Name: },
+// 		enemy{ID: primitive.NewObjectID(), Name: },
+// 	}
+// 	// Perform the insert using the MongoDriverClient to avoid potential test cross-reference issues
+// 	_, err := conn.MongoDriverClient().Database(dbName).Collection(collName).InsertMany(
+// 		nil, enemies)
+// 	is.NoError(err, "Could not setup insert test response for collection setup")
+// 	return dbName, collName
+// }

@@ -26,7 +26,9 @@ func (iq *InsertQuery) One(objToInsert interface{}) (id *primitive.ObjectID, err
 	return id, err
 }
 
-// Many inserts a slice into a mongo collection
+// Many inserts a slice into a mongo collection. The ids of the inserted objects are
+// returned. If an ID was not available (e.g. it was unset), an empty entry in the slice is returned.
+// TODO: What should be the default behavior when an ID isn't returned?
 // Note: Many() uses reflect to coerce an interface to an interface slice. This results in
 // a minor O(N) performance hit. If inserting large quanities of items and every nanosecond counts,
 // cast your slice to a slice interface yourself (which is an O(1) operation), and call ManyFromInterfaceSlice().

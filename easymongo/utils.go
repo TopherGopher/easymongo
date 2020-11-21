@@ -27,8 +27,9 @@ func interfaceIsUnpackable(x interface{}) bool {
 	return false
 }
 
-// interfaceSlice takes any slice and converts it to a slice of interface
-// Thanks to https://stackoverflow.com/a/12754757
+// interfaceSlice takes a interface with an underlying kind of Slice
+// and converts it to a slice of interface.
+// Shout out to https://stackoverflow.com/a/12754757
 func interfaceSlice(slice interface{}) ([]interface{}, error) {
 	s := reflect.ValueOf(slice)
 	if s.Kind() == reflect.Ptr {
@@ -38,17 +39,13 @@ func interfaceSlice(slice interface{}) ([]interface{}, error) {
 	if s.Kind() != reflect.Slice {
 		return nil, fmt.Errorf("a non-slice type was provided")
 	}
-
 	// Keep the distinction between nil and empty slice input
 	if s.IsNil() {
 		return nil, nil
 	}
-
 	ret := make([]interface{}, s.Len())
-
 	for i := 0; i < s.Len(); i++ {
 		ret[i] = s.Index(i).Interface()
 	}
-
 	return ret, nil
 }

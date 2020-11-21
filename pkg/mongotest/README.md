@@ -1,5 +1,5 @@
 # mongotest
-`mongotest` was written with the goal of testing code that relies on mongo simpler.
+`mongotest` was written with the goal of testing code that relies on mongo simpler. The only requirement to use mongotest is to have docker running (should you wish to use the docker container method).
 
 Example:
 ```go
@@ -12,20 +12,25 @@ func TestFoo(t *testing.T) {
     conn.KillMongoContainer()
   })
   // TODO: Insert example
-  conn.Insert()
+  type enemy struct {
+    Name string `bson:"name"`
+  }
+  id, err := conn.Insert().One(&enemy{
+    Name: "The Joker",
+  })
 }
 ```
 The above code will spin up a docker mongo container on a randomly assigned port, insert an object into the collection and when the function exits, the mongo container will be killed. In order to ensure that the docker container gracefully exits, it is recommended to run the `.KillMongoContainer()` command in a `t.Cleanup()` function.
 
 If you choose to use a `defer` (rather than t.Cleanup()), note that it is (presently) not possible to automatically cleanup the created container should the test panic.
 
-I was wondering if a compiler flag might be the way to go to always ensure clean-up, but I truly welcome input on how this might be accomplished cleanly.
+_* I was wondering if a compiler flag might be the way to go to always ensure clean-up, but I truly welcome input on how this might be accomplished cleanly._
 
-# TODO: Cleaning up rogue containers
-Containers are created with a label of `mongotest=regression`. If you run `docker ps` and note a lot of unreaped containers, try running:
+# Cleaning up rogue containers
+Containers are created with a label of `mongotest=regression`. If you run `docker ps` and note a lot of unreaped mongo containers, try running:
 
 ```shell
-    docker rm --force $(docker ps -a --filter=label=mongotest=regression)
+    docker rm --force $(docker ps -a -q --filter=label=mongotest=regression)
 ```
 
-This will thwack any containers that were created by mongotest. 
+This will thwack any containers that were created via mongotest. 

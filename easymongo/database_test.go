@@ -11,7 +11,8 @@ func TestGetDatabase(t *testing.T) {
 	setup(t)
 	defer teardown(t)
 	var err error
-	dbName, _ := createBatmanArchiveUsingMongoDriver(t)
+	coll := createBatmanArchive(t)
+	dbName := coll.GetDatabase().Name()
 	t.Run("GetDatabase", func(t *testing.T) {
 		is := assert.New(t)
 		db := conn.GetDatabase(dbName)

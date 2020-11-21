@@ -1,5 +1,6 @@
 # 0.x project - not ready for the light of day
 Coming soon to an IDE near you...
+![Build Status](https://github.com/TopherGopher/easymongo/workflows/Go/badge.svg?branch=master)
 
 ## Easy Mongo
 This project aims to be a friendly (somewhat opinionated) abstraction on top of mongo-go-driver. The official driver provides much more fine-grained control than this project attempts to solve.

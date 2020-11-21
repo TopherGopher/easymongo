@@ -64,20 +64,20 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: ./easymongo/coverage.easymongo.lcov
-        flag-name: "easymongo"
+        # flag-name: "easymongo"
         base-path: "easymongo"
 
-    - name: Convert code coverage for mongotest
-      uses: jandelgado/gcov2lcov-action@v1.0.5
-      with:
-        infile: coverage.mongotest.out
-        outfile: coverage.mongotest.lcov
-        workspace: ./pkg/mongotest/
+    # - name: Convert code coverage for mongotest
+    #   uses: jandelgado/gcov2lcov-action@v1.0.5
+    #   with:
+    #     infile: coverage.mongotest.out
+    #     outfile: coverage.mongotest.lcov
+    #     workspace: ./pkg/mongotest/
 
-    - name: Upload mongotest code coverage to Coveralls
-      uses: coverallsapp/github-action@v1.1.2
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./pkg/mongotest/coverage.mongotest.lcov
-        flag-name: "mongotest"
-        base-path: "pkg/mongotest"
+    # - name: Upload mongotest code coverage to Coveralls
+    #   uses: coverallsapp/github-action@v1.1.2
+    #   with:
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+    #     path-to-lcov: ./pkg/mongotest/coverage.mongotest.lcov
+    #     flag-name: "mongotest"
+    #     base-path: "pkg/mongotest"

@@ -203,5 +203,5 @@ func (c *Collection) Replace(filter interface{}, obj interface{}) *ReplaceQuery 
 }
 
 func (c *Collection) ReplaceByID(id interface{}, obj interface{}) (err error) {
-	return c.ReplaceOne(bson.M{"_id": id}, obj).Do(nil)
+	return c.Replace(bson.M{"_id": id}, obj).Do(nil)
 }

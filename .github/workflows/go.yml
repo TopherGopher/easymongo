@@ -44,28 +44,43 @@ jobs:
       run: |
         go get -v -t -d ./...
 
-    - name: Test easymongo
-      run: go test -v -race -covermode atomic -coverprofile=coverage.easymongo.out .
-      working-directory: ./easymongo
+    # - name: Test easymongo
+    #   run: go test -v -race -covermode atomic -coverprofile=coverage.easymongo.out .
+    #   working-directory: ./easymongo
 
-    - name: Test mongotest
-      run: go test -v -race -covermode atomic -coverprofile=coverage.mongotest.out .
-      working-directory: ./pkg/mongotest
+    # - name: Test mongotest
+    #   run: go test -v -race -covermode atomic -coverprofile=coverage.mongotest.out .
+    #   working-directory: ./pkg/mongotest
 
-    - name: Convert code coverage for easymongo
+    - name: Test package
+      run: go test -v -race -covermode atomic -coverpkg=./... -coverprofile=coverage.out ./...
+
+    - name: Convert code coverage for package
       uses: jandelgado/gcov2lcov-action@v1.0.5
       with:
-        infile: coverage.easymongo.out
-        outfile: coverage.easymongo.lcov
-        workspace: ./easymongo
+        infile: coverage.out
+        outfile: coverage.lcov
 
     - name: Upload easymongo code coverage to Coveralls
       uses: coverallsapp/github-action@v1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
-        path-to-lcov: ./easymongo/coverage.easymongo.lcov
-        # flag-name: "easymongo"
-        base-path: "easymongo"
+        path-to-lcov: coverage.lcov
+
+    # - name: Convert code coverage for easymongo
+    #   uses: jandelgado/gcov2lcov-action@v1.0.5
+    #   with:
+    #     infile: coverage.easymongo.out
+    #     outfile: coverage.easymongo.lcov
+    #     workspace: ./easymongo
+
+    # - name: Upload easymongo code coverage to Coveralls
+    #   uses: coverallsapp/github-action@v1.1.2
+    #   with:
+    #     github-token: ${{ secrets.GITHUB_TOKEN }}
+    #     path-to-lcov: ./easymongo/coverage.easymongo.lcov
+    #     flag-name: "easymongo"
+    #     base-path: "easymongo"
 
     # - name: Convert code coverage for mongotest
     #   uses: jandelgado/gcov2lcov-action@v1.0.5

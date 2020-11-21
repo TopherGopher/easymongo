@@ -29,7 +29,7 @@ func (q *FindQuery) Limit(limit int) *FindQuery {
 // the result into the provided interface. Ensure interface{} is either
 // a slice or a pointer to a slice.
 func (q *FindQuery) Many(results interface{}) error {
-	// TODO: Check kind ot make sure it's a slice or map
+	// TODO: Check kind to make sure it's a slice or map
 	opts := q.FindOptions()
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()

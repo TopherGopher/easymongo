@@ -45,9 +45,12 @@ jobs:
         go get -v -t -d ./...
 
     - name: Test easymongo
-      run: go test -v .
+      run: go test -v -coverprofile=coverage.1.out .
       working-directory: ./easymongo
 
     - name: Test mongotest
-      run: go test -v .
+      run: go test -v -coverprofile=coverage.2.out .
       working-directory: ./pkg/mongotest
+
+    - name: Coveralls GitHub Action
+      uses: coverallsapp/github-action@v1.1.2

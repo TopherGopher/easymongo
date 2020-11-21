@@ -190,10 +190,10 @@ func (c *Collection) Insert() *InsertQuery {
 	}
 }
 
-// ReplaceOne wraps FindOneAndReplace which wraps findAndModify().
-// TODO: What is the performance trade-off between using the update style replace versus
-// findAndModify if someone doesn't call Decode()? is it just memory?
-func (c *Collection) ReplaceOne(filter interface{}, obj interface{}) *ReplaceQuery {
+// ReplaceOne returns a ReplaceQuery. Trying running `.One()` against this.
+// This is used to replace an entire object. If you are looking to update just part of a document
+// you should probably be using Update.
+func (c *Collection) Replace(filter interface{}, obj interface{}) *ReplaceQuery {
 	return &ReplaceQuery{
 		newObj: obj,
 		Query: Query{

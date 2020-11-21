@@ -58,6 +58,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         path-to-lcov: ./easymongo/coverage.1.out
         flag-name: "easymongo"
+        base-path: "easymongo"
 
     - name: Coveralls GitHub Action
       uses: coverallsapp/github-action@v1.1.2

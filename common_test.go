@@ -4,10 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/tophergopher/easymongo"
-
-	"github.com/TopherGopher/pkg/mongotest"
 	"github.com/stretchr/testify/assert"
+	"github.com/tophergopher/easymongo"
+	"github.com/tophergopher/mongotest"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 

@@ -42,22 +42,6 @@ type FindQuery struct {
 	sort            interface{}
 }
 
-// AllowPartialResults allows an operation on a sharded cluster to return partial results (in the case that a shard is inaccessible).
-// An error will not be returned should only partial results be returned.
-func (q *FindQuery) AllowPartialResults() *FindQuery {
-	t := true
-	q.allowPartialResults = &t
-	return q
-}
-
-// BatchSize sets the max batch size returned by the server each time the cursor executes.
-// Mostly useful when using Iter directly.
-func (q *FindQuery) BatchSize(batchSize int) *FindQuery {
-	i32 := int32(batchSize)
-	q.batchSize = &i32
-	return q
-}
-
 // TODO: FindQuery.CursorType helpers
 // func (q *FindQuery) CursorType(x *CursorType) *FindQuery {
 // 	return q
@@ -79,14 +63,6 @@ func (q *FindQuery) BatchSize(batchSize int) *FindQuery {
 // 	return q
 // }
 
-// Projection limits the information returned from the query.
-// Whitelist fields using:     `bson.M{"showThisField": 1}`
-// Blacklist fields using:     `bson.M{"someBigStructToHide": 0}`
-func (q *FindQuery) Projection(projectionQuery interface{}) *FindQuery {
-	q.projection = projectionQuery
-	return q
-}
-
 // func (q *FindQuery) TODO: ReturnKey(x *bool) *FindQuery {
 // 	return q
 // }
@@ -97,32 +73,6 @@ func (q *FindQuery) Projection(projectionQuery interface{}) *FindQuery {
 // func (q *FindQuery) TODO: Snapshot(x *bool) *FindQuery {
 // 	return q
 // }
-
-// AllowDiskUse sets a flag which allows queries to page to disk space
-// should they exhaust their allotted memory.
-func (q *FindQuery) AllowDiskUse() *FindQuery {
-	t := true
-	q.allowDiskUse = &t
-	return q
-}
-
-// Skip sets the skip value to bypass the given number of entries
-// A note that when working with larger datasets, it is much more
-// performance to compare using collection.FindByDate
-func (q *FindQuery) Skip(skip int) *FindQuery {
-	s64 := int64(skip)
-	q.skip = &s64
-	return q
-}
-
-// Limit sets the max value of responses to return when executing the query.
-// A note that when working with larger datasets, it is much more
-// performance to compare using collection.FindByDate
-func (q *FindQuery) Limit(limit int) *FindQuery {
-	l64 := int64(limit)
-	q.limit = &l64
-	return q
-}
 
 // Many executes the specified query using find() and unmarshals
 // the result into the provided interface. Ensure interface{} is either
@@ -142,17 +92,24 @@ func (q *FindQuery) Many(results interface{}) error {
 
 // findOneOptions generates the native mongo driver FindOneOptions from the FindQuery
 func (q *FindQuery) findOneOptions() *options.FindOneOptions {
-	return &options.FindOneOptions{
+	o := &options.FindOneOptions{
 		AllowPartialResults: q.allowPartialResults,
 		BatchSize:           q.batchSize,
 		Collation:           q.collation,
 		Comment:             q.comment,
-		Hint:                q.hintIndices,
-		MaxTime:             q.timeout,
-		Projection:          q.projection,
-		Skip:                q.skip,
-		Sort:                q.sortFields,
+		// Hint:                q.hintIndices,
+		MaxTime: q.timeout,
+		// Projection: q.projection,
+		Skip: q.skip,
+		// Sort:       q.sortFields,
 	}
+	if q.hintIndices != nil {
+		o.Hint = *q.hintIndices
+	}
+	if q.sortFields != nil {
+		o.Sort = *q.sortFields
+	}
+	return o
 }
 
 // One consumes the specified query and marshals the result
@@ -171,18 +128,16 @@ func (q *FindQuery) One(result interface{}) (err error) {
 
 // findOptions generates the native mongo driver FindOptions from the FindQuery
 func (q *FindQuery) findOptions() *options.FindOptions {
-	return &options.FindOptions{
+	o := &options.FindOptions{
 		AllowDiskUse:        q.allowDiskUse,
 		AllowPartialResults: q.allowPartialResults,
 		BatchSize:           q.batchSize,
 		Collation:           q.collation,
 		Comment:             q.comment,
-		Hint:                q.hintIndices,
 		Limit:               q.limit,
 		MaxTime:             q.timeout,
 		Projection:          q.projection,
 		Skip:                q.skip,
-		Sort:                q.sortFields,
 		// CursorType:          x,
 		// Max:                 x,
 		// MaxAwaitTime:        x,
@@ -193,6 +148,13 @@ func (q *FindQuery) findOptions() *options.FindOptions {
 		// ShowRecordID: x,
 		// Snapshot:     x,
 	}
+	if q.hintIndices != nil {
+		o.Hint = *q.hintIndices
+	}
+	if q.sortFields != nil {
+		o.Sort = *q.sortFields
+	}
+	return o
 }
 
 // Iter returns an iterator that can be used to walk over and unpack the results one at a time.
@@ -216,13 +178,17 @@ func (q *FindQuery) Iter() (iter *Iter, err error) {
 
 // countOptions generates the native mongo driver CountOptions from the FindQuery
 func (q *FindQuery) countOptions() *options.CountOptions {
-	return &options.CountOptions{
+	o := &options.CountOptions{
 		Limit:     q.limit,
 		Skip:      q.skip,
 		MaxTime:   q.timeout,
 		Collation: q.collation,
-		Hint:      q.hintIndices,
+		// Hint:      q.hintIndices,
 	}
+	if q.hintIndices != nil {
+		o.Hint = *q.hintIndices
+	}
+	return o
 }
 
 // Count counts the number of documents using the specified query

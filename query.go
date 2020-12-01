@@ -23,8 +23,8 @@ import (
 type Query struct {
 	// filter holds the query to be executed - typically a bson.M or bson.D value.
 	filter      interface{}
-	sortFields  bson.D
-	hintIndices bson.D
+	sortFields  *bson.D
+	hintIndices *bson.D
 	comment     *string
 	collation   *options.Collation
 	timeout     *time.Duration
@@ -45,10 +45,11 @@ func (c *Collection) Query(filter interface{}) *Query {
 // Prepending a field name with a '-' denotes descending sorting
 // e.g. "-name" would sort the "name" field in descending order
 func (q *Query) Sort(fields ...string) *Query {
-	q.sortFields = make(bson.D, len(fields))
+	sortFields := make(bson.D, len(fields))
 	for i, field := range fields {
-		q.sortFields[i] = indexKeyToBsonE(field)
+		sortFields[i] = indexKeyToBsonE(field)
 	}
+	q.sortFields = &sortFields
 	return q
 }
 
@@ -65,10 +66,11 @@ func (q *Query) Sort(fields ...string) *Query {
 // Reference: https://docs.mongodb.com/manual/reference/operator/meta/hint/
 // TODO: Support '-' prepending - shoul it be -1 or 0 as the value?
 func (q *Query) Hint(indexKeys ...string) *Query {
-	q.hintIndices = make(bson.D, len(indexKeys))
+	hintIndices := make(bson.D, len(indexKeys))
 	for i, indexKey := range indexKeys {
-		q.hintIndices[i] = indexKeyToBsonE(indexKey)
+		hintIndices[i] = indexKeyToBsonE(indexKey)
 	}
+	q.hintIndices = &hintIndices
 	return q
 }
 

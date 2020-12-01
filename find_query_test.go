@@ -24,9 +24,12 @@ func TestFind(t *testing.T) {
 		is := assert.New(t)
 		enemies := []enemy{}
 		expectedName := "The Joker"
-		err := coll.Find(bson.M{"name": expectedName}).Many(&enemies)
+		err := coll.Find(bson.M{"name": expectedName}).Sort("-name").Many(&enemies)
 		is.NoError(err, "Couldn't Find.Many() the name '%s'", expectedName)
 		is.Len(enemies, 1)
+		if len(enemies) < 1 {
+			t.FailNow()
+		}
 		is.Equal(expectedName, enemies[0].Name, "Returned object appears unpopulated")
 
 		err = coll.Find(bson.M{}).Many(&enemies)

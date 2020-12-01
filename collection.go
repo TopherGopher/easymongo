@@ -42,6 +42,19 @@ func GetCollection(dbName, collectionName string) *Collection {
 	return GetDatabase(dbName).C(collectionName)
 }
 
+// Drop drops the collection this object is referring to.
+func (c *Collection) Drop() (err error) {
+	ctx, cancelFunc := c.DefaultCtx()
+	defer cancelFunc()
+	return c.mongoColl.Drop(ctx)
+}
+
+// MongoDriverCollection returns the native mongo driver collection object
+// (should you wish to interact with it directly)
+func (c *Collection) MongoDriverCollection() *mongo.Collection {
+	return c.mongoColl
+}
+
 // func (c *Collection) With(s *Session) *Collection {return }
 
 // func (c *Collection) EnsureIndexKey(key ...string) error {return }
@@ -50,7 +63,6 @@ func GetCollection(dbName, collectionName string) *Collection {
 // func (c *Collection) DropIndex(key ...string) error {return }
 // func (c *Collection) DropIndexName(name string) error {return }
 
-// func (c *Collection) DropCollection() error {return }
 // func (c *Collection) Repair() *Iter {return }
 // func (c *Collection) Aggregate(pipeline interface{}) *Aggregation { return nil }
 
@@ -97,84 +109,57 @@ func (c *Collection) FindByDate(after *time.Time, before *time.Time, additionalF
 	return c.Find(q)
 }
 
-// UpdateOne updates a single record (should it exist)
-// ErrNotFound is returned if nothing matches the update criteria.
-// c.UpdateOne(bson.M{"name": "joker"})
-func (c *Collection) UpdateOne(filter interface{}, update interface{}) *UpdateQuery {
-	return &UpdateQuery{
-		updateQuery: update,
-		Query: Query{
-			filter: filter,
-			many:   false,
-		},
-	}
-}
+// // UpdateOne updates a single record (should it exist)
+// // ErrNotFound is returned if nothing matches the update criteria.
+// // c.UpdateOne(bson.M{"name": "joker"})
+// func (c *Collection) UpdateOne(filter interface{}, update interface{}) *UpdateQuery {
+// 	return &UpdateQuery{
+// 		updateQuery: update,
+// 		Query: Query{
+// 			filter: filter,
+// 			many:   false,
+// 		},
+// 	}
+// }
 
 // UpdateByID wraps UpdateOne to update a single record by ID (should the record exist).
 func (c *Collection) UpdateByID(id interface{}, update interface{}) (err error) {
-	_, _, err = c.UpdateOne(bson.M{"_id": id}, update).Do()
-	return err
+	return c.Update(bson.M{"_id": id}, update).One()
 }
 
-// UpdateMany updates all matching entries to the provided query.
-// If no entries were updated, ErrNotFound is returned.
-func (c *Collection) UpdateMany(filter interface{}, update interface{}) *UpdateQuery {
-	return &UpdateQuery{
-		updateQuery: update,
-		Query: Query{
-			filter: filter,
-			many:   true,
-		},
-	}
+// // UpdateMany updates all matching entries to the provided query.
+// // If no entries were updated, ErrNotFound is returned.
+// func (c *Collection) UpdateMany(filter interface{}, update interface{}) *UpdateQuery {
+// 	return c.Update(filter, update).Many()
+// }
+
+// Upsert updates the first matching document using the upsert option once .One() has been called.
+// If no option overrides are necessary, consider using UpsertOne or UpsertByID.
+func (c *Collection) Upsert(filter interface{}, updateQuery interface{}) *UpdateQuery {
+	return c.Update(filter, updateQuery).Upsert()
 }
 
-// UpsertOne updates the first matching document using the upsert option.
-func (c *Collection) UpsertOne(filter interface{}, updateQuery interface{}) *UpdateQuery {
-	return &UpdateQuery{
-		updateQuery: updateQuery,
-		upsert:      true,
-		Query: Query{
-			filter: filter,
-			many:   false,
-		},
-	}
+// UpsertOne updates the first matching document using the default upsert options.
+// This call is equivalent to c.Upsert(filter, updateQuery).One()
+func (c *Collection) UpsertOne(filter interface{}, updateQuery interface{}) error {
+	return c.Upsert(filter, updateQuery).One()
 }
 
 // UpsertByID performs an upsert style update using the updateQuery against the provided _id.
 func (c *Collection) UpsertByID(id interface{}, updateQuery interface{}) (err error) {
-	_, _, err = c.UpsertOne(bson.M{"_id": id}, updateQuery).Do()
-	return err
+	return c.UpsertOne(bson.M{"_id": id}, updateQuery)
 }
 
 // UpsertMany performs an update style upsert using updateMany().
+// Should no documents match the query, then a new document is created.
 // updateQuery is typically of some sort of $set or $push bson.M.
-func (c *Collection) UpsertMany(filter interface{}, updateQuery interface{}) *UpdateQuery {
-	return &UpdateQuery{
-		updateQuery: updateQuery,
-		upsert:      true,
-		Query: Query{
-			filter: filter,
-			many:   true,
-		},
-	}
+func (c *Collection) UpsertMany(filter interface{}, updateQuery interface{}) (matchedCount, updatedCount int, err error) {
+	return c.Update(filter, updateQuery).Upsert().Many()
 }
 
-// func (c *Collection) Remove(selector interface{}) error {return }
-// func (c *Collection) RemoveId(id interface{}) error {return }
-// func (c *Collection) RemoveAll(selector interface{}) (info *ChangeInfo, err error) {return }
 func (c *Collection) DeleteOne()                {}
 func (c *Collection) DeleteMany()               {}
 func (c *Collection) DeleteByID(id interface{}) {}
-
-// Insert constructs and returns an InsertQuery object.
-// Now run .One() or .Many() using this handle.
-func (c *Collection) Insert() *InsertQuery {
-	return &InsertQuery{
-		Query: Query{
-			collection: c,
-		},
-	}
-}
 
 // ReplaceByID is a friendly helper that wraps Replace(bson.M{"_id": id}, obj).Execute()
 func (c *Collection) ReplaceByID(id interface{}, obj interface{}) (err error) {

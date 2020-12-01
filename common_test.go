@@ -39,7 +39,7 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	is := assert.New(t)
 	dbName := "batman_archive"
 	collName := "enemies"
-	coll := conn.GetDatabase(dbName).C(collName)
+	coll := conn.Database(dbName).C(collName)
 	enemies := []enemy{
 		0: {ID: primitive.NewObjectID(), Name: "The Joker"},
 		1: {ID: primitive.NewObjectID(), Name: "Superman (depending on the day)"},

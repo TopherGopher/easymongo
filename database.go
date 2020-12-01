@@ -18,7 +18,7 @@ type Database struct {
 // GetDatabase returns a database object for the named database using the most recently connected to
 // mongo instance/cluster.
 func GetDatabase(dbName string) *Database {
-	return GetCurrentConnection().GetDatabase(dbName)
+	return GetCurrentConnection().Database(dbName)
 }
 
 // C returns a Collection object that can be used to run queries on and create/drop indices

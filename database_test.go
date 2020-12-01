@@ -3,8 +3,8 @@ package easymongo_test
 import (
 	"testing"
 
-	"github.com/tophergopher/easymongo"
 	"github.com/stretchr/testify/assert"
+	"github.com/tophergopher/easymongo"
 )
 
 func TestGetDatabase(t *testing.T) {
@@ -15,7 +15,7 @@ func TestGetDatabase(t *testing.T) {
 	dbName := coll.GetDatabase().Name()
 	t.Run("GetDatabase", func(t *testing.T) {
 		is := assert.New(t)
-		db := conn.GetDatabase(dbName)
+		db := conn.Database(dbName)
 		is.NotNil(db)
 	})
 	t.Run("DatabaseNames", func(t *testing.T) {
@@ -38,13 +38,13 @@ func TestGetDatabase(t *testing.T) {
 	})
 	t.Run("db.CollectionNames", func(t *testing.T) {
 		is := assert.New(t)
-		collNames, err := conn.GetDatabase(dbName).CollectionNames()
+		collNames, err := conn.Database(dbName).CollectionNames()
 		is.NoError(err, "Couldn't find the collection names")
 		is.Len(collNames, 1, "There should only be one collection present")
 	})
 	t.Run("db.ListCollections", func(t *testing.T) {
 		is := assert.New(t)
-		colls, err := conn.GetDatabase(dbName).ListCollections()
+		colls, err := conn.Database(dbName).ListCollections()
 		is.NoError(err, "Couldn't list the collections")
 		is.Len(colls, 1, "There should only be one collection present")
 	})
@@ -57,7 +57,7 @@ func TestGetDatabase(t *testing.T) {
 	t.Run("db.Drop()", func(t *testing.T) {
 		is := assert.New(t)
 		dbNamesBefore := conn.DatabaseNames()
-		db := conn.GetDatabase(dbName)
+		db := conn.Database(dbName)
 		err := db.Drop()
 		is.NoError(err, "Could not drop the database")
 		dbNamesAfter := conn.DatabaseNames()

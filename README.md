@@ -5,6 +5,13 @@ Coming soon to an IDE near you...
 ## Easy Mongo
 This project aims to be a friendly (somewhat opinionated) abstraction on top of mongo-go-driver. The official driver provides much more fine-grained control than this project attempts to solve.
 
+## TODO: C.R.U.D. Examples
+Create/Read/Update/Destroy!
+#### Get Data into the Database
+Let's talk about first how to get data into the database.
+#### Find it and query it back
+#### Modify it
+#### Delete it
 #### Examples
 
 ```go
@@ -44,7 +51,7 @@ Anyone is welcome to submit PRs. Please ensure there is test coverage before sub
 - [X] Support update/upsert/replace
 - [X] Support count
 - [ ] Support delete
-- [ ] Support create
+- [X] Support insert
 - [ ] Support gridfs
 - [ ] Support watching
 - [ ] Support collection ease-of-use enhancements

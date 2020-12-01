@@ -16,7 +16,7 @@ func TestInsert(t *testing.T) {
 	type greekGod struct {
 		Name string `bson:"name"`
 	}
-	coll := conn.GetDatabase(dbName).C(collName)
+	coll := conn.Database(dbName).C(collName)
 	t.Run("Insert().One()", func(t *testing.T) {
 		is := assert.New(t)
 		id, err := coll.Insert().One(greekGod{Name: "Zeus"})

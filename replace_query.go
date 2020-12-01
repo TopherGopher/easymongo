@@ -25,6 +25,7 @@ func (rq *ReplaceQuery) Execute() error {
 	// TODO: ReplaceOptions
 	ctx, cancelFunc := rq.getContext()
 	defer cancelFunc()
+
 	res, err := rq.collection.mongoColl.ReplaceOne(ctx, rq.filter, rq.newObj, opts)
 	if err != nil {
 		return err

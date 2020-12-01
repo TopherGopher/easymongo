@@ -3,6 +3,9 @@ package easymongo
 import (
 	"fmt"
 	"reflect"
+	"strings"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // interfaceIsZero returns true when an interface is either 0 or nil
@@ -48,4 +51,24 @@ func interfaceSlice(slice interface{}) ([]interface{}, error) {
 		ret[i] = s.Index(i).Interface()
 	}
 	return ret, nil
+}
+
+// indexKeyToBsonE returns a bson.E element that can be used for index keys.
+// This checks the first character of an index key. If it is a '-', then a descending
+// sort is performed. Otherwise, an ascending sort is performed.
+//   indexKeyToBsonE("-age") => bson.E{Key: "age", Value: "-1"}
+func indexKeyToBsonE(indexKey string) bson.E {
+	if len(indexKey) == 0 {
+		// TODO: will returning a 0 index truly no-op?
+		return bson.E{}
+	}
+	val := 1
+	if indexKey[0] == '-' {
+		indexKey = strings.TrimPrefix(indexKey, "-")
+		val = -1
+	}
+	return bson.E{
+		Key:   indexKey,
+		Value: val,
+	}
 }

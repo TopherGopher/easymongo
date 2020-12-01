@@ -30,10 +30,10 @@ type FindQuery struct {
 	allowPartialResults *bool
 	batchSize           *int32
 	// cursorType          *CursorType
-	max             interface{}
-	maxAwaitTime    *time.Duration
-	maxTime         *time.Duration
-	min             interface{}
+	// max             interface{}
+	// maxAwaitTime    *time.Duration
+	maxTime *time.Duration
+	// min             interface{}
 	noCursorTimeout *bool
 	oplogReplay     *bool
 	returnKey       *bool
@@ -63,21 +63,21 @@ func (q *FindQuery) BatchSize(batchSize int) *FindQuery {
 // 	return q
 // }
 
-func (q *FindQuery) Max(x interface{}) *FindQuery {
-	return q
-}
-func (q *FindQuery) MaxAwaitTime(x *time.Duration) *FindQuery {
-	return q
-}
-func (q *FindQuery) Min(x interface{}) *FindQuery {
-	return q
-}
-func (q *FindQuery) NoCursorTimeout(x *bool) *FindQuery {
-	return q
-}
-func (q *FindQuery) OplogReplay(x *bool) *FindQuery {
-	return q
-}
+// func (q *FindQuery) TODO: Max(x interface{}) *FindQuery {
+// 	return q
+// }
+// func (q *FindQuery) TODO: MaxAwaitTime(x *time.Duration) *FindQuery {
+// 	return q
+// }
+// func (q *FindQuery) TODO: Min(x interface{}) *FindQuery {
+// 	return q
+// }
+// func (q *FindQuery) TODO: NoCursorTimeout(x *bool) *FindQuery {
+// 	return q
+// }
+// func (q *FindQuery) TODO: OplogReplay(x *bool) *FindQuery {
+// 	return q
+// }
 
 // Projection limits the information returned from the query.
 // Whitelist fields using:     `bson.M{"showThisField": 1}`
@@ -86,16 +86,17 @@ func (q *FindQuery) Projection(projectionQuery interface{}) *FindQuery {
 	q.projection = projectionQuery
 	return q
 }
-func (q *FindQuery) ReturnKey(x *bool) *FindQuery {
-	return q
-}
-func (q *FindQuery) ShowRecordID(x *bool) *FindQuery {
-	return q
-}
 
-func (q *FindQuery) Snapshot(x *bool) *FindQuery {
-	return q
-}
+// func (q *FindQuery) TODO: ReturnKey(x *bool) *FindQuery {
+// 	return q
+// }
+// func (q *FindQuery) TODO: ShowRecordID(x *bool) *FindQuery {
+// 	return q
+// }
+
+// func (q *FindQuery) TODO: Snapshot(x *bool) *FindQuery {
+// 	return q
+// }
 
 // AllowDiskUse sets a flag which allows queries to page to disk space
 // should they exhaust their allotted memory.
@@ -128,7 +129,7 @@ func (q *FindQuery) Limit(limit int) *FindQuery {
 // a slice or a pointer to a slice.
 func (q *FindQuery) Many(results interface{}) error {
 	// TODO: Check kind to make sure results is a slice or map
-	opts := q.FindOptions()
+	opts := q.findOptions()
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
 	cursor, err := q.collection.mongoColl.Find(ctx, q.filter, opts)
@@ -139,11 +140,26 @@ func (q *FindQuery) Many(results interface{}) error {
 	return cursor.All(ctx, results)
 }
 
+// findOneOptions generates the native mongo driver FindOneOptions from the FindQuery
+func (q *FindQuery) findOneOptions() *options.FindOneOptions {
+	return &options.FindOneOptions{
+		AllowPartialResults: q.allowPartialResults,
+		BatchSize:           q.batchSize,
+		Collation:           q.collation,
+		Comment:             q.comment,
+		Hint:                q.hintIndices,
+		MaxTime:             q.timeout,
+		Projection:          q.projection,
+		Skip:                q.skip,
+		Sort:                q.sortFields,
+	}
+}
+
 // One consumes the specified query and marshals the result
 // into the provided interface.
 func (q *FindQuery) One(result interface{}) (err error) {
-	// TODO: Check kind ot make sure this is a pointer
-	opts := q.FindOneOptions()
+	// TODO: Check kind to make sure this is a pointer
+	opts := q.findOneOptions()
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
 	err = q.collection.mongoColl.FindOne(ctx, q.filter, opts).Decode(result)
@@ -153,10 +169,36 @@ func (q *FindQuery) One(result interface{}) (err error) {
 	return err
 }
 
+// findOptions generates the native mongo driver FindOptions from the FindQuery
+func (q *FindQuery) findOptions() *options.FindOptions {
+	return &options.FindOptions{
+		AllowDiskUse:        q.allowDiskUse,
+		AllowPartialResults: q.allowPartialResults,
+		BatchSize:           q.batchSize,
+		Collation:           q.collation,
+		Comment:             q.comment,
+		Hint:                q.hintIndices,
+		Limit:               q.limit,
+		MaxTime:             q.timeout,
+		Projection:          q.projection,
+		Skip:                q.skip,
+		Sort:                q.sortFields,
+		// CursorType:          x,
+		// Max:                 x,
+		// MaxAwaitTime:        x,
+		// Min:                 x,
+		// NoCursorTimeout:     x,
+		// OplogReplay:         x,
+		// ReturnKey:           x,
+		// ShowRecordID: x,
+		// Snapshot:     x,
+	}
+}
+
 // Iter returns an iterator that can be used to walk over and unpack the results one at a time.
 func (q *FindQuery) Iter() (iter *Iter, err error) {
 	// TODO: Check kind ot make sure it's a slice or map
-	opts := q.FindOptions()
+	opts := q.findOptions()
 
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
@@ -172,9 +214,20 @@ func (q *FindQuery) Iter() (iter *Iter, err error) {
 	return iter, nil
 }
 
-// Count counts the number of documents in the specified query
+// countOptions generates the native mongo driver CountOptions from the FindQuery
+func (q *FindQuery) countOptions() *options.CountOptions {
+	return &options.CountOptions{
+		Limit:     q.limit,
+		Skip:      q.skip,
+		MaxTime:   q.timeout,
+		Collation: q.collation,
+		Hint:      q.hintIndices,
+	}
+}
+
+// Count counts the number of documents using the specified query
 func (q *FindQuery) Count() (int, error) {
-	opts := q.CountOptions()
+	opts := q.countOptions()
 	mongoColl := q.collection.mongoColl
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
@@ -194,49 +247,4 @@ func (q *FindQuery) OneAnd(result interface{}) *FindAndQuery {
 		result: result,
 		Query:  q.Query,
 	}
-}
-
-// FindAndQuery is used for Find().OneAnd() operations (e.g. Find().OneAnd().Replace())
-type FindAndQuery struct {
-	result interface{}
-	*Query
-}
-
-// Update ends up running `findAndModify()` - if you do not need the result
-// object, consider running `collection.UpdateOne()` instead.
-func (q *FindAndQuery) Update(updateQuery interface{}) (err error) {
-	mongoColl := q.collection.mongoColl
-	ctx, cancelFunc := q.getContext()
-	defer cancelFunc()
-	opts := options.FindOneAndUpdate()
-	// TODO: FindOneAndUpdateOptions
-	res := mongoColl.FindOneAndUpdate(ctx, q.filter, updateQuery, opts)
-
-	return res.Decode(q.result)
-}
-
-// Replace ultimately ends up running `findOneAndReplace()`. If you do not need the existing
-// value/object, it is recommended to instead run `collection.Replace().Execute()`
-func (q *FindAndQuery) Replace(replacementObject interface{}) (err error) {
-	mongoColl := q.collection.mongoColl
-	ctx, cancelFunc := q.getContext()
-	defer cancelFunc()
-	opts := options.FindOneAndReplace()
-	// TODO: FindOneAndReplaceOptions
-	res := mongoColl.FindOneAndReplace(ctx, q.filter, replacementObject, opts)
-
-	return res.Decode(q.result)
-}
-
-// Delete ultimately ends up running `findOneAndDelete()`. If you do not need the existing
-// value/object, it is recommended to instead run `collection.Delete().Execute()`
-func (q *FindAndQuery) Delete() (err error) {
-	mongoColl := q.collection.mongoColl
-	ctx, cancelFunc := q.getContext()
-	defer cancelFunc()
-	opts := options.FindOneAndDelete()
-	// TODO: FindOneAndDeleteOptions
-	res := mongoColl.FindOneAndDelete(ctx, q.filter, opts)
-
-	return res.Decode(q.result)
 }

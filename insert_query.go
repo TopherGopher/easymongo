@@ -7,8 +7,19 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
+// InsertQuery is a helper for constructing insertion operations
 type InsertQuery struct {
 	Query
+}
+
+// Insert constructs and returns an InsertQuery object.
+// Now run .One() or .Many() using this handle.
+func (c *Collection) Insert() *InsertQuery {
+	return &InsertQuery{
+		Query: Query{
+			collection: c,
+		},
+	}
 }
 
 // One is used to insert a single object into a collection

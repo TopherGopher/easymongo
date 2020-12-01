@@ -99,8 +99,8 @@ func (conn *Connection) MongoDriverClient() *mongo.Client {
 	return conn.client
 }
 
-// GetDatabase returns the database object associated with the provided database name
-func (conn *Connection) GetDatabase(dbName string) *Database {
+// Database returns the database object associated with the provided database name
+func (conn *Connection) Database(dbName string) *Database {
 	opts := options.Database()
 	return &Database{
 		connection: conn,
@@ -139,7 +139,7 @@ func (conn *Connection) ListDatabases() (dbList []*Database) {
 	dbNames := conn.DatabaseNames()
 	dbList = make([]*Database, len(dbNames))
 	for i, dbName := range dbNames {
-		dbList[i] = conn.GetDatabase(dbName)
+		dbList[i] = conn.Database(dbName)
 	}
 	return dbList
 }

@@ -25,11 +25,11 @@ jobs:
 
     - name: Vet
       run: go vet -v ./...
-      working-directory: ./easymongo
+      # working-directory: ./easymongo
 
     - name: Build
       run: go build -v ./...
-      working-directory: ./easymongo
+      # working-directory: ./easymongo
   test:
     name: Test
     runs-on: ubuntu-latest

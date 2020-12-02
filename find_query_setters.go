@@ -1,6 +1,10 @@
 package easymongo
 
-import "time"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
 
 // AllowDiskUse sets a flag which allows queries to page to disk space
 // should they exhaust their allotted memory.
@@ -15,6 +19,14 @@ func (q *FindQuery) AllowDiskUse() *FindQuery {
 func (q *FindQuery) AllowPartialResults() *FindQuery {
 	t := true
 	q.allowPartialResults = &t
+	return q
+}
+
+// Collation allows users to specify language-specific rules for string comparison, such as rules for lettercase and accent marks.
+// https://docs.mongodb.com/manual/reference/collation/
+// TODO: Create helpers and consts for Collation
+func (q *FindQuery) Collation(c *options.Collation) *FindQuery {
+	q.Query.Collation(c)
 	return q
 }
 

@@ -29,8 +29,11 @@ type Query struct {
 	collation   *options.Collation
 	timeout     *time.Duration
 	collection  *Collection
-	// many        bool
 }
+
+// type QueryI interface {
+// 	Sort(fields ...string) QueryI
+// }
 
 // Query returns an initialized query object from a collection
 func (c *Collection) Query(filter interface{}) *Query {

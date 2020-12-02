@@ -17,12 +17,15 @@ func setup(t *testing.T) {
 	var err error
 	conn, err = mongotest.NewTestConnection(true)
 	is.NoError(err, "Could not stand up test database connection")
+	if conn != nil {
+		t.Cleanup(func() { teardown(t) })
+	}
 }
 func teardown(t *testing.T) {
 	if conn != nil {
 		err := conn.KillMongoContainer()
 		if err != nil {
-			t.Errorf("Could not tear down test mongo container: %v", err)
+			t.Errorf("Could not tear down test mongo container after test run: %v", err)
 		}
 	}
 }
@@ -47,7 +50,9 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	}
 	ids, err := coll.Insert().Many(enemies)
 	is.NoError(err, "Couldn't setup the collection for the test")
-	is.Len(ids, 3)
+	is.Len(ids, 3, "One or more items weren't inserted successfully.")
+	_, err = coll.Index("name").Ensure()
+	is.NoError(err, "Couldn't ensure the name index")
 	return coll
 }
 

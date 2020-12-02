@@ -60,6 +60,16 @@ func (c *Collection) MongoDriverCollection() *mongo.Collection {
 // func (c *Collection) EnsureIndexKey(key ...string) error {return }
 // func (c *Collection) EnsureIndex(index Index) error {return }
 // func (c *Collection) Indexes() (indexes []Index, err error) {return }
+
+// Index returns an object that can be actioned upon.
+// Compound indices can be specified by passing in multiple strings
+func (c *Collection) Index(indexNames ...string) *Index {
+	return &Index{
+		indexNames: indexNames,
+		collection: c,
+	}
+}
+
 // func (c *Collection) DropIndex(key ...string) error {return }
 // func (c *Collection) DropIndexName(name string) error {return }
 
@@ -161,7 +171,7 @@ func (c *Collection) DeleteOne()                {}
 func (c *Collection) DeleteMany()               {}
 func (c *Collection) DeleteByID(id interface{}) {}
 
-// ReplaceByID is a friendly helper that wraps Replace(bson.M{"_id": id}, obj).Execute()
+// ReplaceByID is a friendly helper that wraps Replace(bson.M{"_id": id}, obj).One()
 func (c *Collection) ReplaceByID(id interface{}, obj interface{}) (err error) {
-	return c.Replace(bson.M{"_id": id}, obj).Execute()
+	return c.Replace(bson.M{"_id": id}, obj).One()
 }

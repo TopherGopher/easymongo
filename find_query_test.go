@@ -10,7 +10,7 @@ import (
 
 func TestFind(t *testing.T) {
 	setup(t)
-	defer teardown(t)
+
 	coll := createBatmanArchive(t)
 
 	t.Run("Find().One()", func(t *testing.T) {
@@ -27,7 +27,7 @@ func TestFind(t *testing.T) {
 		expectedName := "The Joker"
 		err := coll.Find(bson.M{"name": expectedName}).Comment(
 			"Isn't this a fun query?").BatchSize(5).Projection(
-			bson.M{"name": 1}).Sort(
+			bson.M{"name": 1}).Hint("name").Sort(
 			"-name").Skip(0).Limit(0).Timeout(time.Hour).Many(&enemies)
 		is.NoError(err, "Couldn't Find.Many() the name '%s'", expectedName)
 		is.Len(enemies, 1)

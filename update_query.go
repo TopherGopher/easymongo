@@ -14,13 +14,14 @@ type UpdateQuery struct {
 	Query
 }
 
-// Update
-// todo: update docs
+// Update returns an UpdateQuery object which can be actioned upon by calling One() or Many()
+// e.g. c.Update().Many()
 func (c *Collection) Update(filter interface{}, update interface{}) *UpdateQuery {
 	return &UpdateQuery{
 		updateQuery: update,
 		Query: Query{
-			filter: filter,
+			collection: c,
+			filter:     filter,
 		},
 	}
 }
@@ -50,14 +51,17 @@ func (uq *UpdateQuery) BypassDocumentValidation() *UpdateQuery {
 
 // UpdateOptions returns the native mongo driver options.UpdateOptions using
 // the provided query information.
-func (uq *UpdateQuery) UpdateOptions() *options.UpdateOptions {
-	return &options.UpdateOptions{
+func (uq *UpdateQuery) updateOptions() *options.UpdateOptions {
+	o := &options.UpdateOptions{
 		ArrayFilters:             uq.arrayFilters,
 		BypassDocumentValidation: uq.bypassDocumentValidation,
 		Collation:                uq.collation,
-		Hint:                     uq.hintIndices,
 		Upsert:                   uq.upsert,
 	}
+	if uq.hintIndices != nil {
+		o.Hint = *uq.hintIndices
+	}
+	return o
 }
 
 // One runs the UpdateQuery against the first matching document.
@@ -67,7 +71,7 @@ func (uq *UpdateQuery) One() (err error) {
 	mongoColl := uq.collection.mongoColl
 	ctx, cancelFunc := uq.getContext()
 	defer cancelFunc()
-	opts := uq.UpdateOptions()
+	opts := uq.updateOptions()
 	result, err = mongoColl.UpdateOne(ctx, uq.filter, uq.updateQuery, opts)
 	if err == nil && result.MatchedCount == 0 {
 		// TODO: Inject ErrNotFound
@@ -85,8 +89,12 @@ func (uq *UpdateQuery) Many() (matchedCount, updatedCount int, err error) {
 	mongoColl := uq.collection.mongoColl
 	ctx, cancelFunc := uq.getContext()
 	defer cancelFunc()
-	opts := uq.UpdateOptions()
+	opts := uq.updateOptions()
 	result, err = mongoColl.UpdateMany(ctx, uq.filter, uq.updateQuery, opts)
+	if err == nil && ctx.Err() != nil {
+		// If there was a timeout - inject that error
+		err = ErrTimeoutOccurred
+	}
 	if err == nil && result.MatchedCount == 0 {
 		// TODO: Inject ErrNotFound
 	}

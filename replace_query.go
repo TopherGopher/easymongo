@@ -19,7 +19,7 @@ func (c *Collection) Replace(filter interface{}, obj interface{}) *ReplaceQuery 
 }
 
 // Execute runs the ReplaceQuery. No actions are taken until this query is run.
-func (rq *ReplaceQuery) Execute() error {
+func (rq *ReplaceQuery) One() error {
 	// var result *mongo.UpdateResult
 	opts := options.Replace()
 	// TODO: ReplaceOptions
@@ -29,6 +29,9 @@ func (rq *ReplaceQuery) Execute() error {
 	res, err := rq.collection.mongoColl.ReplaceOne(ctx, rq.filter, rq.newObj, opts)
 	if err != nil {
 		return err
+	}
+	if err == nil && ctx.Err() != nil {
+		return ErrTimeoutOccurred
 	}
 	// TODO: ReplaceQuery ErrNotFound behavior
 	_ = res

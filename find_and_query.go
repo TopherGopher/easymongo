@@ -1,6 +1,10 @@
 package easymongo
 
-import "go.mongodb.org/mongo-driver/mongo/options"
+import (
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
 
 // FindAndQuery is used for Find().OneAnd() operations (e.g. Find().OneAnd().Replace())
 type FindAndQuery struct {
@@ -46,8 +50,38 @@ func (q *FindAndQuery) BypassDocumentValidation() *FindAndQuery {
 	return q
 }
 
+// Skip sets the skip value to bypass the given number of entries
+// A note that when working with larger datasets, it is much more
+// performance to compare using collection.FindByDate
+func (q *FindAndQuery) Skip(skip int) *FindAndQuery {
+	s64 := int64(skip)
+	q.skip = &s64
+	return q
+}
+
+// Limit sets the max value of responses to return when executing the query.
+// A note that when working with larger datasets, it is much more
+// performance to compare using collection.FindByDate
+func (q *FindAndQuery) Limit(limit int) *FindAndQuery {
+	// TODO: What happens with negative limits in the mongo-driver?
+	if limit < 0 {
+		limit = 0
+	}
+	l64 := int64(limit)
+	q.limit = &l64
+	return q
+}
+
+// Timeout uses the provided duration to set a timeout value using
+// a context. The timeout clock begins upon query execution (e.g. calling .All()),
+// not at time of calling Timeout().
+func (q *FindAndQuery) Timeout(d time.Duration) *FindAndQuery {
+	q.Query.Timeout(d)
+	return q
+}
+
 func (q *FindAndQuery) findOneAndUpdateOptions() *options.FindOneAndUpdateOptions {
-	return &options.FindOneAndUpdateOptions{
+	o := &options.FindOneAndUpdateOptions{
 		ArrayFilters:             q.arrayFilters,
 		BypassDocumentValidation: q.bypassDocumentValidation,
 		Collation:                q.collation,
@@ -57,6 +91,13 @@ func (q *FindAndQuery) findOneAndUpdateOptions() *options.FindOneAndUpdateOption
 		Sort:                     q.sortFields,
 		Upsert:                   q.upsert,
 	}
+	if q.hintIndices != nil {
+		o.Hint = *q.hintIndices
+	}
+	if q.sortFields != nil {
+		o.Sort = *q.sortFields
+	}
+	return o
 }
 
 // Update ends up running `findAndModify()` - if you do not need the result
@@ -85,7 +126,7 @@ func (q *FindAndQuery) Replace(replacementObject interface{}) (err error) {
 }
 
 // Delete ultimately ends up running `findOneAndDelete()`. If you do not need the existing
-// value/object, it is recommended to instead run `collection.Delete().Execute()`
+// value/object prior to the deletion, it is recommended to instead run `Collection().Delete().One()`
 func (q *FindAndQuery) Delete() (err error) {
 	mongoColl := q.collection.mongoColl
 	ctx, cancelFunc := q.getContext()

@@ -2,6 +2,7 @@ package easymongo_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
@@ -24,7 +25,10 @@ func TestFind(t *testing.T) {
 		is := assert.New(t)
 		enemies := []enemy{}
 		expectedName := "The Joker"
-		err := coll.Find(bson.M{"name": expectedName}).Sort("-name").Many(&enemies)
+		err := coll.Find(bson.M{"name": expectedName}).Comment(
+			"Isn't this a fun query?").BatchSize(5).Projection(
+			bson.M{"name": 1}).Sort(
+			"-name").Skip(0).Limit(0).Timeout(time.Hour).Many(&enemies)
 		is.NoError(err, "Couldn't Find.Many() the name '%s'", expectedName)
 		is.Len(enemies, 1)
 		if len(enemies) < 1 {

@@ -108,7 +108,7 @@ func (q *Query) Collation(c *options.Collation) *Query {
 // getContext should be called after the query has been constructed (thus the private specification).
 func (q *Query) getContext() (context.Context, context.CancelFunc) {
 	if q.timeout != nil {
-		return context.WithTimeout(nil, *q.timeout)
+		return context.WithTimeout(context.Background(), *q.timeout)
 	}
 	return q.collection.DefaultCtx()
 }

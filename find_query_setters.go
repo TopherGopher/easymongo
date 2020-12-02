@@ -91,6 +91,10 @@ func (q *FindQuery) Skip(skip int) *FindQuery {
 // A note that when working with larger datasets, it is much more
 // performance to compare using collection.FindByDate
 func (q *FindQuery) Limit(limit int) *FindQuery {
+	// TODO: What happens with negative limits in the mongo-driver?
+	if limit < 0 {
+		limit = 0
+	}
 	l64 := int64(limit)
 	q.limit = &l64
 	return q

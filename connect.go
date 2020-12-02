@@ -129,7 +129,8 @@ func (conn *Connection) GetDefaultTimeoutCtx() (ctx context.Context, cancelFunc 
 	// Make cancelFunc a no-op function by default
 	cancelFunc = func() {}
 	if conn.mongoOptions.defaultTimeout != nil {
-		ctx, cancelFunc = context.WithTimeout(nil, *conn.mongoOptions.defaultTimeout)
+		ctx, cancelFunc = context.WithTimeout(
+			context.Background(), *conn.mongoOptions.defaultTimeout)
 	}
 	return ctx, cancelFunc
 }

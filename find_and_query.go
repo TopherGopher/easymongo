@@ -31,24 +31,6 @@ func (q *FindAndQuery) Upsert() *FindAndQuery {
 	return q
 }
 
-// // Skip sets the skip value to bypass the given number of entries
-// // A note that when working with larger datasets, it is much more
-// // performance to compare using collection.FindByDate
-// func (q *FindAndQuery) Skip(skip int) *FindAndQuery {
-// 	s64 := int64(skip)
-// 	q.skip = &s64
-// 	return q
-// }
-
-// // Limit sets the max value of responses to return when executing the query.
-// // A note that when working with larger datasets, it is much more
-// // performance to compare using collection.FindByDate
-// func (q *FindAndQuery) Limit(limit int) *FindAndQuery {
-// 	l64 := int64(limit)
-// 	q.limit = &l64
-// 	return q
-// }
-
 // ArrayFilters is used to hold filters for the array filters CRUD option. If a registry is nil, bson.DefaultRegistry
 // will be used when converting the filter interfaces to BSON.
 // TODO: ArrayFilters helpers

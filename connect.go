@@ -2,8 +2,15 @@ package easymongo
 
 import (
 	"context"
+	"reflect"
 	"sync"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
+
+	"go.mongodb.org/mongo-driver/bson/bsoncodec"
+	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -15,6 +22,48 @@ import (
 type MongoConnectOptions struct {
 	connectTimeout *time.Duration
 	defaultTimeout *time.Duration
+	// if a nil slice should encode as null instead of an empty array type, this should be true
+	nilSlicesAreNull *bool
+	// This is used as the writeconcern w value which requests acknowledgement that write operations propagate to the specified number of mongod instances
+	numWritesForConsensus *int
+	connectionFlag        *ConnectionFlag
+}
+
+// clientOptions returns the standard options.ClientOptions that mongo driver is looking for
+func (mopts MongoConnectOptions) clientOptions(mongoURI string) *options.ClientOptions {
+	var opts *options.ClientOptions
+	if mopts.connectionFlag != nil {
+		opts = mopts.connectionFlag.mongoDriverClientOptions().ApplyURI(mongoURI)
+	} else {
+		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(mongoURI)
+	}
+
+	registry := bsoncodec.NewRegistryBuilder()
+	if mopts.nilSlicesAreNull != nil && *mopts.nilSlicesAreNull {
+		// The mongo-driver will set unintialized slices to a null type rather than array type by default.
+		// If a user specifies that they desire this behavior, this is a no-op.
+	} else {
+		// Typical use-case for easymongo - nil slices are saved as array types in mongo to make queries
+		// involving slice mutation less prone to error
+		nilSliceCodec := bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))
+		registry.RegisterDefaultEncoder(reflect.Slice, nilSliceCodec)
+	}
+	opts.SetRegistry(registry.Build())
+	if mopts.connectTimeout != nil {
+		// Limit how long to wait to find an available server before erroring (default 30 seconds)
+		opts.SetServerSelectionTimeout(*mopts.connectTimeout)
+		// Limit how long to wait before a connection is established (default 30 seconds)
+		opts.SetConnectTimeout(*mopts.connectTimeout)
+	}
+	if mopts.numWritesForConsensus != nil {
+		opts.SetWriteConcern(writeconcern.New(writeconcern.W(*mopts.numWritesForConsensus)))
+	}
+
+	// This says by default, only read from primary
+	// TODO: TLS config
+	// opts.SetTLSConfig(&tls.Config{})
+
+	return opts
 }
 
 // Connect connects to the given mongo URI.
@@ -35,7 +84,14 @@ func Connect(mongoURI string) *Connection {
 // If a connection does not succeed, then an error is returned.
 // TODO: Configure and consume mongoOpts
 func ConnectWithOptions(mongoURI string, mongoOpts *MongoConnectOptions) (*Connection, error) {
-	client, err := mongo.NewClient(options.Client().ApplyURI(mongoURI))
+	conn := &Connection{
+		mongoURI: mongoURI,
+	}
+	if mongoOpts != nil {
+		conn.mongoOptions = *mongoOpts
+	}
+	opts := conn.mongoOptions.clientOptions(mongoURI)
+	client, err := mongo.NewClient(opts)
 	if err != nil {
 		return nil, err
 	}
@@ -43,13 +99,7 @@ func ConnectWithOptions(mongoURI string, mongoOpts *MongoConnectOptions) (*Conne
 	if err = client.Connect(ctx); err != nil {
 		return nil, err
 	}
-	conn := &Connection{
-		client:   client,
-		mongoURI: mongoURI,
-	}
-	if mongoOpts != nil {
-		conn.mongoOptions = *mongoOpts
-	}
+	conn.client = client
 	setGlobalConnection(conn)
 	return conn, nil
 }
@@ -106,6 +156,152 @@ func (conn *Connection) Database(dbName string) *Database {
 		connection: conn,
 		dbName:     dbName,
 		mongoDB:    conn.client.Database(dbName, opts),
+	}
+}
+
+type ConnectionFlag uint8
+
+const (
+	ReadConcernAvailable ConnectionFlag = iota + 1
+	ReadConcernLinearizable
+	ReadConcernLocal
+	ReadConcernMajority
+	ReadConcernSnapshot
+
+	ReadPreferenceNearest
+	// ReadPreferencePrimary limits the read to the primary node. If the primary isn't available, the query will error.
+	ReadPreferencePrimary
+	// ReadPreferencePrimaryPreferred prefers reads from primary, but will fall back
+	ReadPreferencePrimaryPreferred
+	ReadPreferenceWriteConcern
+	ReadPreferenceSecondary
+	ReadPreferenceSecondaryPreferred
+
+	WriteConcernJournal
+	WriteConcernW1
+	WriteConcernW2
+	WriteConcernW3
+	// WriteConcernMajority waits for a majority of
+	WriteConcernMajority
+)
+
+const (
+	// DefaultPrimary attempts to read and write to the primary node. Secondary will be read from if primary isn't available.
+	DefaultPrimary = ReadConcernLocal | ReadPreferencePrimaryPreferred | WriteConcernW1
+	// DefaultSecondary reads by default from a secondary node (if available). It will use majority consensus when reading to determine what data to return.
+	DefaultSecondary = ReadConcernMajority | ReadPreferenceSecondaryPreferred | WriteConcernW1
+	// DefaultAnywhere connects to the first available node (primary or secondary) for reading. It uses majority both for write confirmations and while waiting for reads.
+	DefaultAnywhere = ReadConcernMajority | ReadPreferenceNearest | WriteConcernMajority
+)
+
+// mongoDriverDatabaseOptions returns the associated options for the provided connectFlag(s)
+func (connectFlag ConnectionFlag) mongoDriverDatabaseOptions() *options.DatabaseOptions {
+	opts := options.Database()
+	wOpts := make([]writeconcern.Option, 0)
+
+	switch {
+	case connectFlag&ReadConcernAvailable == 1:
+		opts.SetReadConcern(readconcern.Available())
+	case connectFlag&ReadConcernLinearizable == 1:
+		opts.SetReadConcern(readconcern.Linearizable())
+	case connectFlag&ReadConcernLocal == 1:
+		opts.SetReadConcern(readconcern.Local())
+	case connectFlag&ReadConcernMajority == 1:
+		opts.SetReadConcern(readconcern.Majority())
+	case connectFlag&ReadConcernSnapshot == 1:
+		opts.SetReadConcern(readconcern.Snapshot())
+	}
+	switch {
+	case connectFlag&ReadPreferenceNearest == 1:
+		opts.SetReadPreference(readpref.Nearest())
+	case connectFlag&ReadPreferencePrimary == 1:
+		opts.SetReadPreference(readpref.Primary())
+	case connectFlag&ReadPreferencePrimaryPreferred == 1:
+		opts.SetReadPreference(readpref.PrimaryPreferred())
+	case connectFlag&ReadPreferenceSecondary == 1:
+		opts.SetReadPreference(readpref.Secondary())
+	case connectFlag&ReadPreferenceSecondaryPreferred == 1:
+		opts.SetReadPreference(readpref.SecondaryPreferred())
+	}
+
+	if connectFlag&WriteConcernJournal == 1 {
+		wOpts = append(wOpts, writeconcern.J(true))
+	}
+	if connectFlag&WriteConcernW1 == 1 {
+		wOpts = append(wOpts, writeconcern.W(1))
+	}
+	if connectFlag&WriteConcernW2 == 1 {
+		wOpts = append(wOpts, writeconcern.W(2))
+	}
+	if connectFlag&WriteConcernW3 == 1 {
+		wOpts = append(wOpts, writeconcern.W(3))
+	}
+	if connectFlag&WriteConcernMajority == 1 {
+		wOpts = append(wOpts, writeconcern.WMajority())
+	}
+	if len(wOpts) != 0 {
+		opts.SetWriteConcern(writeconcern.New(wOpts...))
+	}
+	return opts
+}
+
+// mongoDriverClientOptions returns the associated options for the provided connectFlag(s)
+func (connectFlag ConnectionFlag) mongoDriverClientOptions() *options.ClientOptions {
+	opts := options.Client()
+	wOpts := make([]writeconcern.Option, 0)
+
+	switch {
+	case connectFlag&ReadConcernAvailable == 1:
+		opts.SetReadConcern(readconcern.Available())
+	case connectFlag&ReadConcernLinearizable == 1:
+		opts.SetReadConcern(readconcern.Linearizable())
+	case connectFlag&ReadConcernLocal == 1:
+		opts.SetReadConcern(readconcern.Local())
+	case connectFlag&ReadConcernMajority == 1:
+		opts.SetReadConcern(readconcern.Majority())
+	case connectFlag&ReadConcernSnapshot == 1:
+		opts.SetReadConcern(readconcern.Snapshot())
+	}
+	switch {
+	case connectFlag&ReadPreferenceNearest == 1:
+		opts.SetReadPreference(readpref.Nearest())
+	case connectFlag&ReadPreferencePrimary == 1:
+		opts.SetReadPreference(readpref.Primary())
+	case connectFlag&ReadPreferencePrimaryPreferred == 1:
+		opts.SetReadPreference(readpref.PrimaryPreferred())
+	case connectFlag&ReadPreferenceSecondary == 1:
+		opts.SetReadPreference(readpref.Secondary())
+	case connectFlag&ReadPreferenceSecondaryPreferred == 1:
+		opts.SetReadPreference(readpref.SecondaryPreferred())
+	}
+
+	if connectFlag&WriteConcernJournal == 1 {
+		wOpts = append(wOpts, writeconcern.J(true))
+	}
+	if connectFlag&WriteConcernW1 == 1 {
+		wOpts = append(wOpts, writeconcern.W(1))
+	}
+	if connectFlag&WriteConcernW2 == 1 {
+		wOpts = append(wOpts, writeconcern.W(2))
+	}
+	if connectFlag&WriteConcernW3 == 1 {
+		wOpts = append(wOpts, writeconcern.W(3))
+	}
+	if connectFlag&WriteConcernMajority == 1 {
+		wOpts = append(wOpts, writeconcern.WMajority())
+	}
+	if len(wOpts) != 0 {
+		opts.SetWriteConcern(writeconcern.New(wOpts...))
+	}
+	return opts
+}
+
+// DatabaseByConnectionType returns the database object associated with the provided database name
+func (conn *Connection) DatabaseByConnectionType(dbName string, connectFlag ConnectionFlag) *Database {
+	return &Database{
+		connection: conn,
+		dbName:     dbName,
+		mongoDB:    conn.client.Database(dbName, connectFlag.mongoDriverDatabaseOptions()),
 	}
 }
 

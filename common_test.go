@@ -34,7 +34,8 @@ func teardown(t *testing.T) {
 type enemy struct {
 	ID            primitive.ObjectID `bson:"_id"`
 	Name          string             `bson:"name"`
-	LastEncounter time.Time          `bson:"lastEncounter"`
+	Notes         string             `bson:"notes"`
+	LastEncounter *time.Time         `bson:"lastEncounter"`
 }
 
 // Create some test data
@@ -45,7 +46,7 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	coll := conn.Database(dbName).C(collName)
 	enemies := []enemy{
 		0: {ID: primitive.NewObjectID(), Name: "The Joker"},
-		1: {ID: primitive.NewObjectID(), Name: "Superman (depending on the day)"},
+		1: {ID: primitive.NewObjectID(), Name: "Superman", Notes: "(depending on the day)"},
 		2: {Name: "Poison Ivy"},
 	}
 	ids, err := coll.Insert().Many(enemies)
@@ -55,19 +56,3 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	is.NoError(err, "Couldn't ensure the name index")
 	return coll
 }
-
-// func createBatmanArchiveUsingMongoDriver(t *testing.T) (dbName, collName string) {
-// 	is := assert.New(t)
-// 	dbName = "batman_archive"
-// 	collName = "enemies"
-
-// 	enemies := []interface{}{
-// 		enemy{ID: primitive.NewObjectID(), Name: },
-// 		enemy{ID: primitive.NewObjectID(), Name: },
-// 	}
-// 	// Perform the insert using the MongoDriverClient to avoid potential test cross-reference issues
-// 	_, err := conn.MongoDriverClient().Database(dbName).Collection(collName).InsertMany(
-// 		nil, enemies)
-// 	is.NoError(err, "Could not setup insert test response for collection setup")
-// 	return dbName, collName
-// }

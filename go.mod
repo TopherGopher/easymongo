@@ -7,3 +7,4 @@ require (
 	github.com/tophergopher/mongotest v0.0.5
 	go.mongodb.org/mongo-driver v1.4.3
 )
+replace github.com/tophergopher/mongotest => ../mongotest

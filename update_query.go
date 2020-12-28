@@ -11,7 +11,7 @@ type UpdateQuery struct {
 	upsert                   *bool
 	bypassDocumentValidation *bool
 	arrayFilters             *options.ArrayFilters
-	Query
+	*Query
 }
 
 // Update returns an UpdateQuery object which can be actioned upon by calling One() or Many()
@@ -19,10 +19,7 @@ type UpdateQuery struct {
 func (c *Collection) Update(filter interface{}, update interface{}) *UpdateQuery {
 	return &UpdateQuery{
 		updateQuery: update,
-		Query: Query{
-			collection: c,
-			filter:     filter,
-		},
+		Query:       c.query(filter),
 	}
 }
 
@@ -49,7 +46,7 @@ func (uq *UpdateQuery) BypassDocumentValidation() *UpdateQuery {
 	return uq
 }
 
-// UpdateOptions returns the native mongo driver options.UpdateOptions using
+// updateOptions returns the native mongo driver options.UpdateOptions using
 // the provided query information.
 func (uq *UpdateQuery) updateOptions() *options.UpdateOptions {
 	o := &options.UpdateOptions{
@@ -73,6 +70,7 @@ func (uq *UpdateQuery) One() (err error) {
 	defer cancelFunc()
 	opts := uq.updateOptions()
 	result, err = mongoColl.UpdateOne(ctx, uq.filter, uq.updateQuery, opts)
+	// TODO: Handle ErrNotFound
 	if err == nil && result.MatchedCount == 0 {
 		// TODO: Inject ErrNotFound
 	}
@@ -91,7 +89,7 @@ func (uq *UpdateQuery) Many() (matchedCount, updatedCount int, err error) {
 	defer cancelFunc()
 	opts := uq.updateOptions()
 	result, err = mongoColl.UpdateMany(ctx, uq.filter, uq.updateQuery, opts)
-	if err == nil && ctx.Err() != nil {
+	if err == nil && ctx != nil && ctx.Err() != nil {
 		// If there was a timeout - inject that error
 		err = ErrTimeoutOccurred
 	}

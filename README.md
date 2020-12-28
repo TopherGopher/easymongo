@@ -44,34 +44,3 @@ The decision (which I expect to see at least 1 GitHub issue debating) was made t
 
 ## Contributors
 Anyone is welcome to submit PRs. Please ensure there is test coverage before submitting the request.
-
-## TODO
-- [ ] Support new tag - jbson - which is a common tag that can be used for both json and bson
-- [X] Support find
-- [X] Support update/upsert/replace
-- [X] Support count
-- [ ] Support delete
-- [X] Support insert
-- [ ] Support gridfs
-- [ ] Support watching
-- [ ] Support collection ease-of-use enhancements
-- [ ] Support indices ease-of-use enhancements
-- [ ] Prevent users from being able to reconnect over and over to cluster - cache connection
-- [ ] Add helpers for letting users run tests that:
-  - automatically spin up a docker container if a DB isn't available locally
-  - allow mocking of commands
-  - support exporting data from the DB
-  - support easy preloading of exported data
-- [ ] Make running general mongo commands easier
-- [ ] Add a tool for converting mongo queries to golang mongo queries
-- [ ] Support optionally returning ErrNotFound using a global option when no update/upsert/delete results are found.
-- [ ] Handle nil slice/map auto-initialization / type
-- [ ] Handle datetime objects being strings
-- [ ] Add DistinctStrings(), DistinctInts(), Distinct()
-- [ ] Document bson.M vs bson.D
-- [ ] Add the option to create easymongo from an existing mongo-go-driver session
-- [ ] Support read/write concern
-- [ ] Add option for ErrNotFound
-- [ ] Create docs on using bson tags
-- [ ] Link to mongo-go-driver docs where appropriate
-- [ ] Change Do() to Execute()

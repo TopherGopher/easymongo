@@ -19,6 +19,8 @@ func setup(t *testing.T) {
 	is.NoError(err, "Could not stand up test database connection")
 	if conn != nil {
 		t.Cleanup(func() { teardown(t) })
+	} else {
+		t.FailNow()
 	}
 }
 func teardown(t *testing.T) {
@@ -45,9 +47,11 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	collName := "enemies"
 	coll := conn.Database(dbName).C(collName)
 	enemies := []enemy{
-		0: {ID: primitive.NewObjectID(), Name: "The Joker"},
-		1: {ID: primitive.NewObjectID(), Name: "Superman", Notes: "(depending on the day)"},
+		0: {ID: primitive.NewObjectID(), Name: "The Joker", Notes: "Follow-up about his scars."},
+		1: {ID: primitive.NewObjectID(), Name: "Superman", Notes: "Enemy status depends on the day - we are enemies every day on Wednesday from 4-5:30pm."},
 		2: {Name: "Poison Ivy"},
+		3: {ID: primitive.NewObjectID(), Name: "Two-Face", Notes: "Sometimes this guy is great, othertimes, man, what a jerk"},
+		4: {Name: "Edward Nigma"},
 	}
 	ids, err := coll.Insert().Many(enemies)
 	is.NoError(err, "Couldn't setup the collection for the test")

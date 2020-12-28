@@ -3,8 +3,8 @@ package easymongo_test
 import (
 	"testing"
 
-	"github.com/tophergopher/easymongo"
 	"github.com/stretchr/testify/assert"
+	"github.com/tophergopher/easymongo"
 )
 
 func TestConnect(t *testing.T) {
@@ -16,9 +16,9 @@ func TestConnect(t *testing.T) {
 	})
 	t.Run("ConnectWithOptions", func(t *testing.T) {
 		is := assert.New(t)
-		// TODO: Set options here once implemented in underlying function
-		mongoOpts := &easymongo.MongoConnectOptions{}
-		tmpConn, err := easymongo.ConnectWithOptions(conn.MongoURI(), mongoOpts)
+		// TODO: Rest of flags
+		tmpConn, err := easymongo.ConnectWith(conn.MongoURI()).Flags(
+			easymongo.DefaultAnywhere).Connect()
 		is.NoError(err, "Issue connecting to the test instance using options")
 		is.NoError(tmpConn.Ping(), "Could not ping the test instance")
 	})
@@ -44,7 +44,7 @@ func TestConnect(t *testing.T) {
 	t.Run("ConnectUsingMongoClient", func(t *testing.T) {
 		is := assert.New(t)
 		// TODO: Actually construct a client rather than using a recycled one
-		tmpConn := easymongo.ConnectUsingMongoClient(conn.MongoDriverClient(), conn.MongoURI())
+		tmpConn := easymongo.ConnectWith(conn.MongoURI()).FromMongoDriverClient(conn.MongoDriverClient())
 		is.NoError(tmpConn.Ping(), "Could not ping the test instance")
 	})
 }

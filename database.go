@@ -1,8 +1,6 @@
 package easymongo
 
 import (
-	"context"
-
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -39,14 +37,9 @@ func (db *Database) Collection(name string) *Collection {
 	}
 }
 
-// DefaultCtx returns the appropriate context using the default timeout specified at conneciton time.
-func (db *Database) DefaultCtx() (context.Context, context.CancelFunc) {
-	return db.connection.GetDefaultTimeoutCtx()
-}
-
 // CollectionNames returns the names of the collections as strings.
 func (db *Database) CollectionNames() (collectionNames []string, err error) {
-	ctx, cancelFunc := db.DefaultCtx()
+	ctx, cancelFunc := db.connection.operationCtx()
 	defer cancelFunc()
 	opts := options.ListCollections().SetNameOnly(true)
 	collectionNames, err = db.mongoDB.ListCollectionNames(ctx, bson.M{}, opts)
@@ -87,7 +80,7 @@ func (db *Database) ListCollections() ([]*Collection, error) {
 
 // Drop drops a database from a mongo instance. Use with caution.
 func (db *Database) Drop() error {
-	ctx, cancel := db.DefaultCtx()
+	ctx, cancel := db.connection.operationCtx()
 	defer cancel()
 	return db.mongoDB.Drop(ctx)
 }

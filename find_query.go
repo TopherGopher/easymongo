@@ -12,7 +12,7 @@ import (
 // TODO: Consider using bsoncore.Doc rather than interface?
 func (c *Collection) Find(filter interface{}) (q *FindQuery) {
 	q = &FindQuery{
-		Query: c.Query(filter),
+		Query: c.query(filter),
 	}
 	return q
 }
@@ -20,19 +20,16 @@ func (c *Collection) Find(filter interface{}) (q *FindQuery) {
 // FindQuery is a helper for finding and counting documents
 type FindQuery struct {
 	*Query
-	skip         *int64
-	limit        *int64
-	allowDiskUse *bool
-	projection   interface{}
-	// findOneOpts           *options.FindOneOptions
-	// findManyOpts          *options.FindManyOptions
-	// findOneAndReplaceOpts *options.FindOneAndReplaceOptions
+	skip                *int64
+	limit               *int64
+	allowDiskUse        *bool
+	projection          interface{}
 	allowPartialResults *bool
 	batchSize           *int32
+	maxTime             *time.Duration
 	// cursorType          *CursorType
 	// max             interface{}
 	// maxAwaitTime    *time.Duration
-	maxTime *time.Duration
 	// min             interface{}
 	noCursorTimeout *bool
 	oplogReplay     *bool
@@ -97,11 +94,9 @@ func (q *FindQuery) findOneOptions() *options.FindOneOptions {
 		BatchSize:           q.batchSize,
 		Collation:           q.collation,
 		Comment:             q.comment,
-		// Hint:                q.hintIndices,
-		MaxTime: q.timeout,
-		// Projection: q.projection,
+		MaxTime:             q.timeout,
+		// Projection:          q.projection,
 		Skip: q.skip,
-		// Sort:       q.sortFields,
 	}
 	if q.hintIndices != nil {
 		o.Hint = *q.hintIndices
@@ -115,7 +110,9 @@ func (q *FindQuery) findOneOptions() *options.FindOneOptions {
 // One consumes the specified query and marshals the result
 // into the provided interface.
 func (q *FindQuery) One(result interface{}) (err error) {
-	// TODO: Check kind to make sure this is a pointer
+	if !interfaceIsUnpackable(result) {
+		return ErrPointerRequired
+	}
 	opts := q.findOneOptions()
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()

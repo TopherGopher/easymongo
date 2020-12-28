@@ -9,16 +9,14 @@ import (
 
 // InsertQuery is a helper for constructing insertion operations
 type InsertQuery struct {
-	Query
+	*Query
 }
 
 // Insert constructs and returns an InsertQuery object.
 // Now run .One() or .Many() using this handle.
 func (c *Collection) Insert() *InsertQuery {
 	return &InsertQuery{
-		Query: Query{
-			collection: c,
-		},
+		Query: c.query(nil),
 	}
 }
 

@@ -26,14 +26,14 @@ func (q *FindQuery) AllowPartialResults() *FindQuery {
 // https://docs.mongodb.com/manual/reference/collation/
 // TODO: Create helpers and consts for Collation
 func (q *FindQuery) Collation(c *options.Collation) *FindQuery {
-	q.Query.Collation(c)
+	q.Query.setCollation(c)
 	return q
 }
 
 // Comment adds a comment to the query - when the query is executed, this
 // comment can help with debugging from the logs.
 func (q *FindQuery) Comment(comment string) *FindQuery {
-	q.Query.Comment(comment)
+	q.Query.setComment(comment)
 	return q
 }
 
@@ -49,7 +49,7 @@ func (q *FindQuery) BatchSize(batchSize int) *FindQuery {
 // Prepending a field name with a '-' denotes descending sorting
 // e.g. "-name" would sort the "name" field in descending order
 func (q *FindQuery) Sort(fields ...string) *FindQuery {
-	q.Query.Sort(fields...)
+	q.Query.setSort(fields...)
 	return q
 }
 
@@ -66,7 +66,7 @@ func (q *FindQuery) Sort(fields ...string) *FindQuery {
 // Reference: https://docs.mongodb.com/manual/reference/operator/meta/hint/
 // TODO: Support '-' prepending - shoul it be -1 or 0 as the value?
 func (q *FindQuery) Hint(indexKeys ...string) *FindQuery {
-	q.Query.Hint(indexKeys...)
+	q.Query.setHint(indexKeys...)
 	return q
 }
 
@@ -82,6 +82,10 @@ func (q *FindQuery) Projection(projectionQuery interface{}) *FindQuery {
 // A note that when working with larger datasets, it is much more
 // performance to compare using collection.FindByDate
 func (q *FindQuery) Skip(skip int) *FindQuery {
+	if skip < 0 {
+		// Force skip to be greater than 0
+		skip = 0
+	}
 	s64 := int64(skip)
 	q.skip = &s64
 	return q
@@ -104,6 +108,6 @@ func (q *FindQuery) Limit(limit int) *FindQuery {
 // a context. The timeout clock begins upon query execution (e.g. calling .All()),
 // not at time of calling Timeout().
 func (q *FindQuery) Timeout(d time.Duration) *FindQuery {
-	q.Query.Timeout(d)
+	q.Query.setTimeout(d)
 	return q
 }

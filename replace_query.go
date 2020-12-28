@@ -14,7 +14,7 @@ type ReplaceQuery struct {
 func (c *Collection) Replace(filter interface{}, obj interface{}) *ReplaceQuery {
 	return &ReplaceQuery{
 		newObj: obj,
-		Query:  c.Query(filter),
+		Query:  c.query(filter),
 	}
 }
 
@@ -29,8 +29,7 @@ func (rq *ReplaceQuery) One() error {
 	res, err := rq.collection.mongoColl.ReplaceOne(ctx, rq.filter, rq.newObj, opts)
 	if err != nil {
 		return err
-	}
-	if err == nil && ctx.Err() != nil {
+	} else if ctx.Err() != nil {
 		return ErrTimeoutOccurred
 	}
 	// TODO: ReplaceQuery ErrNotFound behavior

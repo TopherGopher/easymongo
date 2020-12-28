@@ -1,2 +1,4 @@
 .vscode
 internal/mgo
+Genesis.md
+*.code-workspace

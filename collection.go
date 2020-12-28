@@ -25,9 +25,14 @@ func (c *Collection) Connection() *Connection {
 	return c.database.connection
 }
 
-// DefaultCtx returns the appropriate context using the default timeout specified at conneciton time.
-func (c *Collection) DefaultCtx() (context.Context, context.CancelFunc) {
-	return c.database.DefaultCtx()
+// defaultQueryCtx returns the appropriate context using the default timeout specified at connection time.
+func (c *Collection) defaultQueryCtx() (context.Context, context.CancelFunc) {
+	return c.database.connection.defaultQueryCtx()
+}
+
+// operationCtx returns a context based on if a OperationTimeout was specified.
+func (c *Collection) operationCtx() (context.Context, context.CancelFunc) {
+	return c.database.connection.operationCtx()
 }
 
 // GetDatabase returns the database associated with the database/collection.
@@ -44,7 +49,7 @@ func GetCollection(dbName, collectionName string) *Collection {
 
 // Drop drops the collection this object is referring to.
 func (c *Collection) Drop() (err error) {
-	ctx, cancelFunc := c.DefaultCtx()
+	ctx, cancelFunc := c.operationCtx()
 	defer cancelFunc()
 	return c.mongoColl.Drop(ctx)
 }
@@ -84,7 +89,7 @@ func (c *Collection) Index(indexNames ...string) *Index {
 // TODO: Should we be using estimatedCount here instead?
 func (c *Collection) Count() (int, error) {
 	opts := options.Count()
-	ctx, cancelFunc := c.database.connection.GetDefaultTimeoutCtx()
+	ctx, cancelFunc := c.defaultQueryCtx()
 	defer cancelFunc()
 	count, err := c.mongoColl.CountDocuments(ctx, nil, opts)
 	return int(count), err
@@ -166,10 +171,6 @@ func (c *Collection) UpsertByID(id interface{}, updateQuery interface{}) (err er
 func (c *Collection) UpsertMany(filter interface{}, updateQuery interface{}) (matchedCount, updatedCount int, err error) {
 	return c.Update(filter, updateQuery).Upsert().Many()
 }
-
-func (c *Collection) DeleteOne()                {}
-func (c *Collection) DeleteMany()               {}
-func (c *Collection) DeleteByID(id interface{}) {}
 
 // ReplaceByID is a friendly helper that wraps Replace(bson.M{"_id": id}, obj).One()
 func (c *Collection) ReplaceByID(id interface{}, obj interface{}) (err error) {

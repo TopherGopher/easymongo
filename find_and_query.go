@@ -76,7 +76,7 @@ func (q *FindAndQuery) Limit(limit int) *FindAndQuery {
 // a context. The timeout clock begins upon query execution (e.g. calling .All()),
 // not at time of calling Timeout().
 func (q *FindAndQuery) Timeout(d time.Duration) *FindAndQuery {
-	q.Query.Timeout(d)
+	q.Query.setTimeout(d)
 	return q
 }
 
@@ -85,10 +85,8 @@ func (q *FindAndQuery) findOneAndUpdateOptions() *options.FindOneAndUpdateOption
 		ArrayFilters:             q.arrayFilters,
 		BypassDocumentValidation: q.bypassDocumentValidation,
 		Collation:                q.collation,
-		Hint:                     q.hintIndices,
 		MaxTime:                  q.timeout,
 		Projection:               q.projection,
-		Sort:                     q.sortFields,
 		Upsert:                   q.upsert,
 	}
 	if q.hintIndices != nil {
@@ -97,6 +95,7 @@ func (q *FindAndQuery) findOneAndUpdateOptions() *options.FindOneAndUpdateOption
 	if q.sortFields != nil {
 		o.Sort = *q.sortFields
 	}
+	// o.ReturnDocument can be either options.Before or options.After
 	return o
 }
 
@@ -107,9 +106,8 @@ func (q *FindAndQuery) Update(updateQuery interface{}) (err error) {
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
 	opts := q.findOneAndUpdateOptions()
-	res := mongoColl.FindOneAndUpdate(ctx, q.filter, updateQuery, opts)
-
-	return res.Decode(q.result)
+	err = mongoColl.FindOneAndUpdate(ctx, q.filter, updateQuery, opts).Decode(q.result)
+	return err
 }
 
 // Replace ultimately ends up running `findOneAndReplace()`. If you do not need the existing
@@ -125,15 +123,28 @@ func (q *FindAndQuery) Replace(replacementObject interface{}) (err error) {
 	return res.Decode(q.result)
 }
 
+func (q *FindAndQuery) findOneAndDeleteOptions() *options.FindOneAndDeleteOptions {
+	o := &options.FindOneAndDeleteOptions{
+		Collation:  q.collation,
+		MaxTime:    q.timeout,
+		Projection: q.projection,
+	}
+	if q.hintIndices != nil {
+		o.Hint = *q.hintIndices
+	}
+	if q.sortFields != nil {
+		o.Sort = *q.sortFields
+	}
+	return o
+}
+
 // Delete ultimately ends up running `findOneAndDelete()`. If you do not need the existing
 // value/object prior to the deletion, it is recommended to instead run `Collection().Delete().One()`
 func (q *FindAndQuery) Delete() (err error) {
 	mongoColl := q.collection.mongoColl
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
-	opts := options.FindOneAndDelete()
-	// TODO: FindOneAndDeleteOptions
-	res := mongoColl.FindOneAndDelete(ctx, q.filter, opts)
-
-	return res.Decode(q.result)
+	opts := q.findOneAndDeleteOptions()
+	err = mongoColl.FindOneAndDelete(ctx, q.filter, opts).Decode(q.result)
+	return err
 }

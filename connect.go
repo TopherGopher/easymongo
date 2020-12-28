@@ -20,25 +20,29 @@ import (
 
 // MongoConnectOptions holds helpers for configuring a new mongo connection.
 type MongoConnectOptions struct {
-	connectTimeout *time.Duration
-	defaultTimeout *time.Duration
+	mongoURI                string
+	connectTimeout          *time.Duration
+	defaultQueryTimeout     *time.Duration
+	defaultOperationTimeout *time.Duration
 	// if a nil slice should encode as null instead of an empty array type, this should be true
 	nilSlicesAreNull *bool
 	// This is used as the writeconcern w value which requests acknowledgement that write operations propagate to the specified number of mongod instances
-	numWritesForConsensus *int
-	connectionFlag        *ConnectionFlag
+	numWritesForConsensus      *int
+	runHealthCheckOnConnection bool
+	connectionFlag             *ConnectionFlag
 }
 
 // clientOptions returns the standard options.ClientOptions that mongo driver is looking for
-func (mopts MongoConnectOptions) clientOptions(mongoURI string) *options.ClientOptions {
+func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 	var opts *options.ClientOptions
 	if mopts.connectionFlag != nil {
-		opts = mopts.connectionFlag.mongoDriverClientOptions().ApplyURI(mongoURI)
+		opts = mopts.connectionFlag.mongoDriverClientOptions().ApplyURI(mopts.mongoURI)
 	} else {
-		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(mongoURI)
+		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(mopts.mongoURI)
 	}
 
 	registry := bsoncodec.NewRegistryBuilder()
+	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(registry)
 	if mopts.nilSlicesAreNull != nil && *mopts.nilSlicesAreNull {
 		// The mongo-driver will set unintialized slices to a null type rather than array type by default.
 		// If a user specifies that they desire this behavior, this is a no-op.
@@ -48,6 +52,7 @@ func (mopts MongoConnectOptions) clientOptions(mongoURI string) *options.ClientO
 		nilSliceCodec := bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))
 		registry.RegisterDefaultEncoder(reflect.Slice, nilSliceCodec)
 	}
+
 	opts.SetRegistry(registry.Build())
 	if mopts.connectTimeout != nil {
 		// Limit how long to wait to find an available server before erroring (default 30 seconds)
@@ -59,79 +64,159 @@ func (mopts MongoConnectOptions) clientOptions(mongoURI string) *options.ClientO
 		opts.SetWriteConcern(writeconcern.New(writeconcern.W(*mopts.numWritesForConsensus)))
 	}
 
-	// This says by default, only read from primary
 	// TODO: TLS config
-	// opts.SetTLSConfig(&tls.Config{})
+	// tlsConfig := &tls.Config{}
+	// if opts.SSLAllowInvalidCert || opts.SSLAllowInvalidHost {
+	// 	tlsConfig.InsecureSkipVerify = true
+	// }
+	// if opts.SSLPEMKeyFile != "" {
+	// 	_, err := addClientCertFromFile(tlsConfig, opts.SSLPEMKeyFile, opts.SSLPEMKeyPassword)
+	// 	if err != nil {
+	// 		return nil, fmt.Errorf("error configuring client, can't load client certificate: %v", err)
+	// 	}
+	// }
+	// if opts.SSLCAFile != "" {
+	// 	if err := addCACertFromFile(tlsConfig, opts.SSLCAFile); err != nil {
+	// 		return nil, fmt.Errorf("error configuring client, can't load CA file: %v", err)
+	// 	}
+	// }
+	// mopts.SetTLSConfig(tlsConfig)
 
 	return opts
 }
+
+// // addCACertFromFile adds a root CA certificate to the configuration given a path
+// // to the containing file.
+// func addCACertFromFile(cfg *tls.Config, file string) error {
+// 	data, err := ioutil.ReadFile(file)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	certBytes, err := loadCert(data)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	cert, err := x509.ParseCertificate(certBytes)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	if cfg.RootCAs == nil {
+// 		cfg.RootCAs = x509.NewCertPool()
+// 	}
+
+// 	cfg.RootCAs.AddCert(cert)
+
+// 	return nil
+// }
 
 // Connect connects to the given mongo URI.
 // Connect wraps ConnectWithOptions. If you are using just a mongoUri for connection, this should be all you
 // need. However, if you need to configure additional options, it is recommened to instead use ConnectWithOptions.
 // If a connection does not suceed when using Connect, then a panic occurs.
 func Connect(mongoURI string) *Connection {
-	connection, err := ConnectWithOptions(mongoURI, nil)
+	connection, err := ConnectWith(mongoURI).Connect()
 	if err != nil {
 		panic(err)
 	}
 	return connection
 }
 
-// ConnectWithOptions connects to the specified mongo URI. A note that calling this function has the
-// side-effect of setting the global cached connection to this value. If you are not using the global
-// connection value and instead using the value explicitly returned from this function, then no need to worry about this.
-// If a connection does not succeed, then an error is returned.
-// TODO: Configure and consume mongoOpts
-func ConnectWithOptions(mongoURI string, mongoOpts *MongoConnectOptions) (*Connection, error) {
-	conn := &Connection{
-		mongoURI: mongoURI,
-	}
-	if mongoOpts != nil {
-		conn.mongoOptions = *mongoOpts
-	}
-	opts := conn.mongoOptions.clientOptions(mongoURI)
-	client, err := mongo.NewClient(opts)
-	if err != nil {
-		return nil, err
-	}
-	ctx := context.Background()
-	if err = client.Connect(ctx); err != nil {
-		return nil, err
-	}
-	conn.client = client
-	setGlobalConnection(conn)
-	return conn, nil
+// ConnectionBuilder is for specifying options when connecting to a DB
+type ConnectionBuilder struct {
+	connection Connection
 }
 
-// ConnectUsingMongoClient accepts an initialized mongo.Client and returns an easymongo Connection
-// This is useful if you want the power of standing up your own mongo.Client connection.
-// mongoURI is used for informational purposes - feel free to ignore it if you don't need it.
-func ConnectUsingMongoClient(client *mongo.Client, mongoURI string) *Connection {
-	// client.Connect(nil)
-	conn := &Connection{
-		client:   client,
-		mongoURI: mongoURI,
+// ConnectWith allows one to start building a Connection with Options. Call .Connect() at the end to establish the connection.
+// e.g. err = easymongo.ConnectWith(mongoURI).DefaultTimeout().Connect()
+func ConnectWith(mongoURI string) *ConnectionBuilder {
+	return &ConnectionBuilder{
+		Connection{
+			mongoOptions: MongoConnectOptions{
+				mongoURI: mongoURI,
+			},
+		},
 	}
-	// TODO: Consider accepting MongoOptions
-	// if defaultTimeout != nil {
-	// 	conn.mongoOptions.defaultTimeout = defaultTimeout
+}
+
+// Flags can be used to set one or more connection flags. Consider using Default* options, or use bitwise '|' to specify multiple options
+// e.g.: ConnectWith(mongoURI).Flags(ReadConcernMajority | ReadPreferenceNearest | WriteConcernMajority)
+func (cb *ConnectionBuilder) Flags(flags ConnectionFlag) *ConnectionBuilder {
+	cb.connection.mongoOptions.connectionFlag = &flags
+	return cb
+}
+
+// DefaultQueryTimeout allows you to specify a timeout used for query operations.
+func (cb *ConnectionBuilder) DefaultQueryTimeout(timeout time.Duration) *ConnectionBuilder {
+	cb.connection.mongoOptions.defaultQueryTimeout = &timeout
+	return cb
+}
+
+// DefaultOperationTimeout allows you to specify a timeout used both for the top-level connection and
+// for any subsequent queries/operations to the database (unless overridden).
+func (cb *ConnectionBuilder) DefaultOperationTimeout(timeout time.Duration) *ConnectionBuilder {
+	cb.connection.mongoOptions.defaultOperationTimeout = &timeout
+	return cb
+}
+
+// ConnectTimeout allows one to specify the initial timeout when connecting to a database
+func (cb *ConnectionBuilder) ConnectTimeout(timeout time.Duration) *ConnectionBuilder {
+	cb.connection.mongoOptions.connectTimeout = &timeout
+	return cb
+}
+
+// FromMongoDriverClient accepts an initialized mongo.Client.
+// This is useful if you want the power of standing up your own mongo.Client connection externally.
+func (cb *ConnectionBuilder) FromMongoDriverClient(client *mongo.Client) *Connection {
+	cb.connection.client = client
+	conn := &cb.connection
+	// conn := &Connection{
+	// 	client: client,
 	// }
 	setGlobalConnection(conn)
 	return conn
+}
+
+// Connect performs the actual connection to the DB. A note that calling this function has the
+// side-effect of setting the global cached connection to this value. If you are not using the global
+// connection value and instead using the value explicitly returned from this function, then disregard this side-effect.
+// If a connection does not succeed, then an error is returned.
+func (cb *ConnectionBuilder) Connect() (*Connection, error) {
+	opts := cb.connection.mongoOptions.clientOptions()
+	if cb.connection.client == nil {
+		client, err := mongo.NewClient(opts)
+		if err != nil {
+			return nil, err
+		}
+		cb.connection.client = client
+	}
+
+	ctx, cancel := cb.connection.operationCtx()
+	defer cancel()
+	if err := cb.connection.client.Connect(ctx); err != nil {
+		return nil, err
+	}
+	setGlobalConnection(&cb.connection)
+	return &cb.connection, nil
 }
 
 // Connection represents a connection to the mongo cluster/instance.
 type Connection struct {
 	mongoOptions MongoConnectOptions
 	client       *mongo.Client
-	mongoURI     string
+}
+
+// MongoURI returns the URI that the mongo instance is connected to
+func (conn *Connection) MongoURI() string {
+	return conn.mongoOptions.mongoURI
 }
 
 // Ping attempts to ping the mongo instance
 func (conn *Connection) Ping() (err error) {
-	ctx, cancelFunc := conn.GetDefaultTimeoutCtx()
-	defer cancelFunc()
+	ctx, cancel := conn.operationCtx()
+	defer cancel()
 
 	// TODO: Get readpref from singleton
 	err = conn.client.Ping(ctx, readpref.PrimaryPreferred())
@@ -309,7 +394,8 @@ func (conn *Connection) DatabaseByConnectionType(dbName string, connectFlag Conn
 // If an error occurrent, an empty list is returned.
 func (conn *Connection) DatabaseNames() []string {
 	opts := options.ListDatabases()
-	ctx, _ := conn.GetDefaultTimeoutCtx()
+	ctx, cancel := conn.operationCtx()
+	defer cancel()
 	list, err := conn.client.ListDatabaseNames(ctx, bson.M{}, opts)
 	if err != nil {
 		// TODO: Should we return the error instead? If we don't change this, we should change CollectionNames()
@@ -318,17 +404,29 @@ func (conn *Connection) DatabaseNames() []string {
 	return list
 }
 
-// GetDefaultTimeoutCtx returns a context based on if a default timeout has been set. If no timeout
+// getDefaultQueryCtx returns a context based on if a default query timeout has been set.
+// context.Background() and an empty inlined function are returned if no timeout has been set.
+func (conn *Connection) defaultQueryCtx() (ctx context.Context, cancel context.CancelFunc) {
+	return GetTimeoutCtx(conn.mongoOptions.defaultQueryTimeout)
+}
+
+// operationCtx returns a context based on if a default operation timeout has been set.
+// context.Background() and an empty inlined function are returned if no timeout has been set.
+func (conn *Connection) operationCtx() (ctx context.Context, cancel context.CancelFunc) {
+	return GetTimeoutCtx(conn.mongoOptions.defaultOperationTimeout)
+}
+
+// GetTimeoutCtx returns a context based on if a timeout has been specified. If no timeout
 // was specified, then context.Background() is returned.
-func (conn *Connection) GetDefaultTimeoutCtx() (ctx context.Context, cancelFunc context.CancelFunc) {
+func GetTimeoutCtx(timeout *time.Duration) (ctx context.Context, cancel context.CancelFunc) {
 	ctx = context.Background()
-	// Make cancelFunc a no-op function by default
-	cancelFunc = func() {}
-	if conn.mongoOptions.defaultTimeout != nil {
-		ctx, cancelFunc = context.WithTimeout(
-			context.Background(), *conn.mongoOptions.defaultTimeout)
+	// Make cancel a no-op function by default to avoid possible nil function calls
+	// Empty inlined functions end up no-oped by compiler
+	cancel = func() {}
+	if timeout != nil {
+		ctx, cancel = context.WithTimeout(context.Background(), *timeout)
 	}
-	return ctx, cancelFunc
+	return ctx, cancel
 }
 
 // ListDatabases returns a list of databases available in the connected cluster as objects that can be interacted with.
@@ -359,13 +457,7 @@ func GetCurrentConnection() *Connection {
 	connectionLock.RLock()
 	defer connectionLock.RUnlock()
 	if globalConnection == nil {
-		panic("Connect() or ConnectWithOptions() must be called prior to GetCurrentConnection()")
+		panic("Connect() or ConnectWith() must be called prior to GetCurrentConnection()")
 	}
 	return globalConnection
-}
-
-// MongoURI returns the URI of the mongo instance the test connection
-// is tethered to.
-func (conn *Connection) MongoURI() string {
-	return conn.mongoURI
 }

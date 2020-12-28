@@ -35,19 +35,18 @@ type Query struct {
 // 	Sort(fields ...string) QueryI
 // }
 
-// Query returns an initialized query object from a collection
-func (c *Collection) Query(filter interface{}) *Query {
+// query returns an initialized query object from a collection
+func (c *Collection) query(filter interface{}) *Query {
 	return &Query{
 		filter:     filter,
 		collection: c,
-		timeout:    c.database.connection.mongoOptions.defaultTimeout,
 	}
 }
 
-// Sort accepts a list of strings to use as sort fields.
+// setSort accepts a list of strings to use as sort fields.
 // Prepending a field name with a '-' denotes descending sorting
 // e.g. "-name" would sort the "name" field in descending order
-func (q *Query) Sort(fields ...string) *Query {
+func (q *Query) setSort(fields ...string) *Query {
 	sortFields := make(bson.D, len(fields))
 	for i, field := range fields {
 		sortFields[i] = indexKeyToBsonE(field)
@@ -56,7 +55,7 @@ func (q *Query) Sort(fields ...string) *Query {
 	return q
 }
 
-// Hint allows a user to specify index key(s) and supplies these to
+// setHint allows a user to specify index key(s) and supplies these to
 // .hint() - this can result in query optimization.
 // This should either be the index name as a string or the index specification
 // as a document.
@@ -68,7 +67,7 @@ func (q *Query) Sort(fields ...string) *Query {
 // 	"users").Find(bson.M{}).Hint("age").One(&userObj)
 // Reference: https://docs.mongodb.com/manual/reference/operator/meta/hint/
 // TODO: Support '-' prepending - shoul it be -1 or 0 as the value?
-func (q *Query) Hint(indexKeys ...string) *Query {
+func (q *Query) setHint(indexKeys ...string) *Query {
 	hintIndices := make(bson.D, len(indexKeys))
 	for i, indexKey := range indexKeys {
 		hintIndices[i] = indexKeyToBsonE(indexKey)
@@ -77,25 +76,25 @@ func (q *Query) Hint(indexKeys ...string) *Query {
 	return q
 }
 
-// Comment adds a comment to the query - when the query is executed, this
+// setComment adds a comment to the query - when the query is executed, this
 // comment can help with debugging from the logs.
-func (q *Query) Comment(comment string) *Query {
+func (q *Query) setComment(comment string) *Query {
 	q.comment = &comment
 	return q
 }
 
-// Timeout uses the provided duration to set a timeout value using
+// setTimeout uses the provided duration to set a timeout value using
 // a context. The timeout clock begins upon query execution (e.g. calling .All()),
 // not at time of calling Timeout().
-func (q *Query) Timeout(d time.Duration) *Query {
+func (q *Query) setTimeout(d time.Duration) *Query {
 	q.timeout = &d
 	return q
 }
 
-// Collation allows users to specify language-specific rules for string comparison, such as rules for lettercase and accent marks.
+// setCollation allows users to specify language-specific rules for string comparison, such as rules for lettercase and accent marks.
 // https://docs.mongodb.com/manual/reference/collation/
 // TODO: Create helpers and consts for Collation
-func (q *Query) Collation(c *options.Collation) *Query {
+func (q *Query) setCollation(c *options.Collation) *Query {
 	q.collation = c
 	return q
 }
@@ -113,7 +112,7 @@ func (q *Query) getContext() (context.Context, context.CancelFunc) {
 	if q.timeout != nil {
 		return context.WithTimeout(context.Background(), *q.timeout)
 	}
-	return q.collection.DefaultCtx()
+	return q.collection.defaultQueryCtx()
 }
 
 //////////////////////////////

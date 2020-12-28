@@ -22,15 +22,15 @@ func (i *Index) Load() (err error) {
 
 // Ensure ensures that an index exists.
 func (i *Index) Ensure() (indexName string, err error) {
-	ctx, cancelFunc := i.collection.DefaultCtx()
-	defer cancelFunc()
+	ctx, cancel := i.collection.operationCtx()
+	defer cancel()
 	opts := options.CreateIndexes()
 	// TODO: Index.Ensure() options
 	// TODO: Support compound index
 	indexName, err = i.collection.mongoColl.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bsonx.Doc{{Key: i.indexNames[0], Value: bsonx.Int32(1)}},
 	}, opts)
-	if err == nil && ctx.Err() != nil {
+	if err == nil && ctx != nil && ctx.Err() != nil {
 		// If there was a timeout - inject that error
 		err = ErrTimeoutOccurred
 	}

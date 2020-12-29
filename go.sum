@@ -92,6 +92,7 @@ github.com/tophergopher/easymongo v0.0.5/go.mod h1:KZJGYnxt/YQIs2aY32JJYAizz3xhd
 github.com/tophergopher/easymongo v0.0.8/go.mod h1:YAgZSciTPFouNjmg7crubB1QpwFCbE39ndZHn9kHqr0=
 github.com/tophergopher/easymongo v0.0.16/go.mod h1:b6E/bWWx/aurU9rVEcddX5l8MjhxUUArbsXqYZisrtY=
 github.com/tophergopher/easymongo v0.0.17/go.mod h1:FhqHAR8k2dkKLvuckYMkQanfu7VzamMAw1Em9C663rE=
+github.com/tophergopher/easymongo v0.0.18/go.mod h1:Nk1HRe3IzqV60K62e8tM3bUDqPnSLx37h93lTPNcunk=
 github.com/tophergopher/mongotest v0.0.5/go.mod h1:lwyTmGLZSgU2UaEvXTtYxYi53GzBR57FXwlFzZ7XTjo=
 github.com/tophergopher/mongotest v0.0.9 h1:EFSUdI8Mvdko9xNs+L/0b7/H4eq4KVH48R1R2FRDrIY=
 github.com/tophergopher/mongotest v0.0.9/go.mod h1:NquLLeW5qZYKphE7EGInMrORuQyQWpn60f8XGNPRYVw=
@@ -99,6 +100,8 @@ github.com/tophergopher/mongotest v0.0.16 h1:rhTuaemYXhxJv7Yhy5OaPb3ckmAqaZcXDD6
 github.com/tophergopher/mongotest v0.0.16/go.mod h1:b/XhN8Ds5uFQZv/Q1Nxk/LZwKoMKHRuCN3nZCDhjBqI=
 github.com/tophergopher/mongotest v0.0.17 h1:YAlDj/kAfwcAhkn7u429HjlLckzX2IyDPIGCT584wNM=
 github.com/tophergopher/mongotest v0.0.17/go.mod h1:zIBv+rDDzHDxLhBWOjoLZc3eKQ2m8JrJD0AhHufg4qw=
+github.com/tophergopher/mongotest v0.0.18 h1:Z7ycsyDYEvdWdcqYLVnm7o2d8q/eKBZQp40kfdtr3jM=
+github.com/tophergopher/mongotest v0.0.18/go.mod h1:mzxaiJY+ZGxgezBAKbL+PhCG18Jg7kOVpch5DgMq8+4=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
 go.mongodb.org/mongo-driver v1.4.3/go.mod h1:WcMNYLx/IlOxLe6JRJiv2uXuCz6zBLndR4SoGjYphSc=

@@ -1,6 +1,6 @@
 # 0.x project - not ready for the light of day
 Coming soon to an IDE near you...
-![Build Status](https://github.com/TopherGopher/easymongo/workflows/Go/badge.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/TopherGopher/easymongo/badge.svg?branch=master)](https://coveralls.io/github/TopherGopher/easymongo?branch=master)
+![Build Status](https://github.com/TopherGopher/easymongo/workflows/Go/badge.svg?branch=master) [![Coverage Status](https://coveralls.io/repos/github/TopherGopher/easymongo/badge.svg?branch=master)](https://coveralls.io/github/TopherGopher/easymongo?branch=master) [![Go Reference Docs](https://pkg.go.dev/badge/github.com/tophergopher/easymongo.svg)](https://pkg.go.dev/github.com/tophergopher/easymongo)
 
 ## Easy Mongo
 This project aims to be a friendly (somewhat opinionated) abstraction on top of mongo-go-driver. The official driver provides much more fine-grained control than this project attempts to solve.

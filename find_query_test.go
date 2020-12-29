@@ -38,6 +38,6 @@ func TestFind(t *testing.T) {
 
 		err = coll.Find(bson.M{}).Many(&enemies)
 		is.NoError(err, "Failed to Find.Many() for all documents in collection", expectedName)
-		is.Len(enemies, 3)
+		is.GreaterOrEqual(len(enemies), 5, "There should be at least 5 documents in the test collection")
 	})
 }

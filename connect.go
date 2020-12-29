@@ -6,11 +6,10 @@ import (
 	"sync"
 	"time"
 
-	"go.mongodb.org/mongo-driver/mongo/readconcern"
-	"go.mongodb.org/mongo-driver/mongo/writeconcern"
-
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/mongo/readconcern"
+	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -53,7 +52,7 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 		registry.RegisterDefaultEncoder(reflect.Slice, nilSliceCodec)
 	}
 
-	opts.SetRegistry(registry.Build())
+	// opts.SetRegistry(registry.Build())
 	if mopts.connectTimeout != nil {
 		// Limit how long to wait to find an available server before erroring (default 30 seconds)
 		opts.SetServerSelectionTimeout(*mopts.connectTimeout)

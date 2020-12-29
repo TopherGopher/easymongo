@@ -22,9 +22,9 @@ func TestUpdate(t *testing.T) {
 		err := coll.Update(bson.M{"name": "The Joker"}, bson.M{
 			"$set": bson.M{"lastEncounter": now}}).One()
 		is.NoError(err, "Could not update the timestamp for a single document")
-		err = coll.Find(bson.M{"name": "The Joker"}).One(e)
+		err = coll.Find(bson.M{"name": "The Joker"}).One(&e)
 		is.NoError(err, "Could not find the document after updating")
-		is.Equal(now, e.LastEncounter, "The document does not appear to be updated")
+		is.Equal(now.Unix(), e.LastEncounter.Unix(), "The document does not appear to be updated")
 	})
 	t.Run("Update one by ID", func(t *testing.T) {
 		is := assert.New(t)

@@ -49,13 +49,13 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	enemies := []enemy{
 		0: {ID: primitive.NewObjectID(), Name: "The Joker", Notes: "Follow-up about his scars."},
 		1: {ID: primitive.NewObjectID(), Name: "Superman", Notes: "Enemy status depends on the day - we are enemies every day on Wednesday from 4-5:30pm."},
-		2: {Name: "Poison Ivy"},
+		2: {ID: primitive.NewObjectID(), Name: "Poison Ivy"},
 		3: {ID: primitive.NewObjectID(), Name: "Two-Face", Notes: "Sometimes this guy is great, othertimes, man, what a jerk"},
-		4: {Name: "Edward Nigma"},
+		4: {ID: primitive.NewObjectID(), Name: "Edward Nigma"},
 	}
 	ids, err := coll.Insert().Many(enemies)
 	is.NoError(err, "Couldn't setup the collection for the test")
-	is.Len(ids, 3, "One or more items weren't inserted successfully.")
+	is.Len(ids, len(enemies), "One or more items weren't inserted successfully.")
 	_, err = coll.Index("name").Ensure()
 	is.NoError(err, "Couldn't ensure the name index")
 	return coll

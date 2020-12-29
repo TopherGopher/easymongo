@@ -34,24 +34,24 @@ func TestDelete(t *testing.T) {
 
 		err = coll.DeleteByID(e.ID)
 		is.NoError(err, "Could not delete the document")
-
+		e = enemy{}
 		err = coll.FindByID(e.ID, &e)
 		is.Error(err, "We should not be able to find this document post-deletion")
-		is.Empty(e.ID, "We should not be able to find this document post-deletion")
+		is.Empty(e.Name, "We should not be able to find this document post-deletion")
 	})
 	t.Run("Delete many", func(t *testing.T) {
 		is := assert.New(t)
 		filter := bson.M{}
 		docCount, err := coll.Find(filter).Count()
 		is.NoError(err, "Could not find any documents prior to testing deletion")
-		is.NotEmpty(docCount, "Could not find any documents prior to testing deletion")
+		is.NotEqual(0, docCount, "Could not find any documents prior to testing deletion")
 
 		deletedCount, err := coll.Delete(filter).Many()
 		is.NoError(err, "Could not delete all documents")
 		is.Equal(docCount, deletedCount, "Could not delete all the documents in the collection")
 
 		createBatmanArchive(t)
-		filter = bson.M{"notes": bson.M{"$not": "$empty"}}
+		filter = bson.M{"notes": bson.M{"$ne": nil}}
 		docCount, err = coll.Find(filter).Count()
 		is.NoError(err, "Could not find any documents prior to testing deletion")
 		is.NotEmpty(docCount, "Could not find any documents prior to testing deletion")

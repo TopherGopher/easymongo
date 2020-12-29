@@ -27,7 +27,7 @@ func (iq *InsertQuery) One(objToInsert interface{}) (id *primitive.ObjectID, err
 	// TODO: InsertOne options
 	opts := options.InsertOne()
 	result, err := iq.collection.mongoColl.InsertOne(ctx, objToInsert, opts)
-	if !interfaceIsZero(result.InsertedID) {
+	if result != nil && !interfaceIsZero(result.InsertedID) {
 		if rid, ok := result.InsertedID.(primitive.ObjectID); ok {
 			id = &rid
 		}

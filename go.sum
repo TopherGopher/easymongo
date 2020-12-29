@@ -90,9 +90,12 @@ github.com/stretchr/testify v1.6.1/go.mod h1:6Fq8oRcR53rry900zMqJjRRixrwX3KX962/
 github.com/tidwall/pretty v1.0.0/go.mod h1:XNkn88O1ChpSDQmQeStsy+sBenx6DDtFZJxhVysOjyk=
 github.com/tophergopher/easymongo v0.0.5/go.mod h1:KZJGYnxt/YQIs2aY32JJYAizz3xhdMOBkQAWQszxg/4=
 github.com/tophergopher/easymongo v0.0.8/go.mod h1:YAgZSciTPFouNjmg7crubB1QpwFCbE39ndZHn9kHqr0=
+github.com/tophergopher/easymongo v0.0.16/go.mod h1:b6E/bWWx/aurU9rVEcddX5l8MjhxUUArbsXqYZisrtY=
 github.com/tophergopher/mongotest v0.0.5/go.mod h1:lwyTmGLZSgU2UaEvXTtYxYi53GzBR57FXwlFzZ7XTjo=
 github.com/tophergopher/mongotest v0.0.9 h1:EFSUdI8Mvdko9xNs+L/0b7/H4eq4KVH48R1R2FRDrIY=
 github.com/tophergopher/mongotest v0.0.9/go.mod h1:NquLLeW5qZYKphE7EGInMrORuQyQWpn60f8XGNPRYVw=
+github.com/tophergopher/mongotest v0.0.16 h1:rhTuaemYXhxJv7Yhy5OaPb3ckmAqaZcXDD6vyRpvLKw=
+github.com/tophergopher/mongotest v0.0.16/go.mod h1:b/XhN8Ds5uFQZv/Q1Nxk/LZwKoMKHRuCN3nZCDhjBqI=
 github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=
 github.com/xdg/stringprep v0.0.0-20180714160509-73f8eece6fdc/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
 go.mongodb.org/mongo-driver v1.4.3/go.mod h1:WcMNYLx/IlOxLe6JRJiv2uXuCz6zBLndR4SoGjYphSc=
@@ -136,6 +139,7 @@ golang.org/x/sys v0.0.0-20201223074533-0d417f636930/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/term v0.0.0-20201117132131-f5c789dd3221/go.mod h1:Nr5EML6q2oocZ2LXRh80K7BxOlk5/8JxuGnuhpl+muw=
 golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1/go.mod h1:bj7SfCRtBDWHUb9snDiAeCFNEtKQo2Wmx5Cou7ajbmo=
 golang.org/x/text v0.3.0/go.mod h1:NqM8EUOU14njkJ3fqMW+pc6Ldnwhi/IjpwHt7yyuwOQ=
+golang.org/x/text v0.3.3 h1:cokOdA+Jmi5PJGXLlLllQSgYigAEfHXJAERHVMaCc2k=
 golang.org/x/text v0.3.3/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=
 golang.org/x/text v0.3.4 h1:0YWbFKbhXG/wIiuHDSKpS0Iy7FSA+u45VtBMfQcFTTc=
 golang.org/x/text v0.3.4/go.mod h1:5Zoc/QRtKVWzQhOtBMvqHzDpF6irO9z98xDceosuGiQ=

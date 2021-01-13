@@ -40,8 +40,8 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(mopts.mongoURI)
 	}
 
-	registry := bsoncodec.NewRegistryBuilder()
-	bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(registry)
+	registry := bson.NewRegistryBuilder()
+	// bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(registry)
 	if mopts.nilSlicesAreNull != nil && *mopts.nilSlicesAreNull {
 		// The mongo-driver will set unintialized slices to a null type rather than array type by default.
 		// If a user specifies that they desire this behavior, this is a no-op.
@@ -51,8 +51,8 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 		nilSliceCodec := bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))
 		registry.RegisterDefaultEncoder(reflect.Slice, nilSliceCodec)
 	}
+	opts.SetRegistry(registry.Build())
 
-	// opts.SetRegistry(registry.Build())
 	if mopts.connectTimeout != nil {
 		// Limit how long to wait to find an available server before erroring (default 30 seconds)
 		opts.SetServerSelectionTimeout(*mopts.connectTimeout)

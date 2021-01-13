@@ -74,13 +74,12 @@ func (uq *UpdateQuery) One() (err error) {
 	if err == nil && result.MatchedCount == 0 {
 		// TODO: Inject ErrNotFound
 	}
-	// matchedCount = int(result.MatchedCount)
-	// updatedCount = int(result.ModifiedCount)
 
 	return err
 }
 
 // Many runs the UpdateQuery against all matching documents.
+// A note that the updatedCount includes the count for upserted documents.
 // No actions are taken until this function is called.
 func (uq *UpdateQuery) Many() (matchedCount, updatedCount int, err error) {
 	var result *mongo.UpdateResult
@@ -97,7 +96,7 @@ func (uq *UpdateQuery) Many() (matchedCount, updatedCount int, err error) {
 		// TODO: Inject ErrNotFound
 	}
 	matchedCount = int(result.MatchedCount)
-	updatedCount = int(result.ModifiedCount)
+	updatedCount = int(result.ModifiedCount) + int(result.UpsertedCount)
 
 	return matchedCount, updatedCount, err
 }

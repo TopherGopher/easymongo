@@ -28,12 +28,29 @@ func TestUpdate(t *testing.T) {
 	})
 	t.Run("Update one by ID", func(t *testing.T) {
 		is := assert.New(t)
-		_ = is
-		t.Skipf("TODO: UpdateOneByID()")
+		var e enemy
+		notes := "The darkest night..."
+		err := coll.Find(bson.M{"_id": bson.M{"$ne": nil}}).One(&e)
+		is.NoError(err, "Unable to find an object to update by ID")
+		err = coll.UpdateByID(e.ID, bson.M{"$set": bson.M{"notes": notes}})
+		is.NoError(err, "Could not update the object by ID")
+		err = coll.Find(bson.M{"_id": bson.M{"$ne": nil}}).One(&e)
+		is.NoError(err, "Unable to find an object to update by ID")
+		is.Equal(notes, e.Notes, "The document does not appear to be updated")
 	})
 	t.Run("Update many", func(t *testing.T) {
 		is := assert.New(t)
-		_ = is
-		t.Skipf("TODO: Update.Many()")
+		now := time.Now()
+		var enemies []enemy
+		filter := bson.M{"name": nil}
+		update := bson.M{"$set": bson.M{"lastEncounter": now}}
+		matchedCount, updatedCount, err := coll.Update(filter, update).Upsert().Many()
+		is.NoError(err, "Could not update many")
+		is.Equal(0, matchedCount)
+		is.Equal(1, updatedCount)
+
+		err = coll.Find(filter).Many(&enemies)
+		is.NoError(err, "Unable to find an object to update by ID")
+		is.Len(enemies, updatedCount)
 	})
 }

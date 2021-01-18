@@ -30,10 +30,7 @@ func (i *Index) Ensure() (indexName string, err error) {
 	indexName, err = i.collection.mongoColl.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys: bsonx.Doc{{Key: i.indexNames[0], Value: bsonx.Int32(1)}},
 	}, opts)
-	if err == nil && ctx != nil && ctx.Err() != nil {
-		// If there was a timeout - inject that error
-		err = ErrTimeoutOccurred
-	}
+	err = i.collection.handleErr(err)
 	return indexName, err
 }
 

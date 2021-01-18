@@ -36,8 +36,9 @@ func teardown(t *testing.T) {
 type enemy struct {
 	ID            primitive.ObjectID `bson:"_id"`
 	Name          string             `bson:"name"`
-	Notes         string             `bson:"notes"`
+	Notes         string             `bson:"notes,omitempty"`
 	LastEncounter *time.Time         `bson:"lastEncounter"`
+	Deceased      bool               `bson:"deceased"`
 }
 
 // Create some test data
@@ -52,6 +53,7 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 		2: {ID: primitive.NewObjectID(), Name: "Poison Ivy"},
 		3: {ID: primitive.NewObjectID(), Name: "Two-Face", Notes: "Sometimes this guy is great, othertimes, man, what a jerk"},
 		4: {ID: primitive.NewObjectID(), Name: "Edward Nigma"},
+		5: {ID: primitive.NewObjectID(), Name: "My own demons", Deceased: true},
 	}
 	ids, err := coll.Insert().Many(enemies)
 	is.NoError(err, "Couldn't setup the collection for the test")

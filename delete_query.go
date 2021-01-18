@@ -38,10 +38,9 @@ func (dq *DeleteQuery) One() (err error) {
 	defer cancelFunc()
 	opts := dq.deleteOptions()
 	_, err = dq.collection.mongoColl.DeleteOne(ctx, dq.filter, opts)
+	err = dq.collection.handleErr(err)
 	if err != nil {
 		return err
-	} else if ctx.Err() != nil {
-		return ErrTimeoutOccurred
 	}
 	// TODO: Handle ErrNotFound
 	// if res.DeletedCount == 0 { err = ErrNotFound }
@@ -55,10 +54,9 @@ func (dq *DeleteQuery) Many() (numDeleted int, err error) {
 	defer cancelFunc()
 	opts := dq.deleteOptions()
 	res, err := dq.collection.mongoColl.DeleteMany(ctx, dq.filter, opts)
+	err = dq.collection.handleErr(err)
 	if err != nil {
 		return numDeleted, err
-	} else if ctx != nil && ctx.Err() != nil {
-		return numDeleted, ErrTimeoutOccurred
 	}
 	if res != nil {
 		numDeleted = int(res.DeletedCount)

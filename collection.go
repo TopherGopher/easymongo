@@ -2,11 +2,10 @@ package easymongo
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
-
-	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"go.mongodb.org/mongo-driver/mongo"
 
@@ -85,13 +84,23 @@ func (c *Collection) Index(indexNames ...string) *Index {
 // func (c *Collection) Insert(docs ...interface{}) error {return }
 // func (c *Collection) Create(info *CollectionInfo) error {return }
 
-// Count returns the count of the number of documents in the collection.
-// TODO: Should we be using estimatedCount here instead?
+// Count returns the number of documents in the collection.
+// When working with larger document sets, collection.EstimatedCount can also
+// be a friend. If you wish to add filters to query a count, then use
+// collection.Find(filterQuery).Count()
 func (c *Collection) Count() (int, error) {
-	opts := options.Count()
+	return c.Find(bson.M{}).Count()
+}
+
+// EstimatedCount returns the estimated count of the documents in the collection
+// For a precise count, try collection.Count()
+func (c *Collection) EstimatedCount() (int, error) {
 	ctx, cancelFunc := c.defaultQueryCtx()
 	defer cancelFunc()
-	count, err := c.mongoColl.CountDocuments(ctx, nil, opts)
+	count, err := c.mongoColl.EstimatedDocumentCount(ctx)
+	if err == nil {
+		err = ctx.Err()
+	}
 	return int(count), err
 }
 
@@ -137,16 +146,10 @@ func (c *Collection) FindByDate(after *time.Time, before *time.Time, additionalF
 // 	}
 // }
 
-// UpdateByID wraps UpdateOne to update a single record by ID (should the record exist).
+// UpdateByID wraps collection.Update().One() to update a single record by ID (should the record exist).
 func (c *Collection) UpdateByID(id interface{}, update interface{}) (err error) {
 	return c.Update(bson.M{"_id": id}, update).One()
 }
-
-// // UpdateMany updates all matching entries to the provided query.
-// // If no entries were updated, ErrNotFound is returned.
-// func (c *Collection) UpdateMany(filter interface{}, update interface{}) *UpdateQuery {
-// 	return c.Update(filter, update).Many()
-// }
 
 // Upsert updates the first matching document using the upsert option once .One() has been called.
 // If no option overrides are necessary, consider using UpsertOne or UpsertByID.
@@ -165,14 +168,32 @@ func (c *Collection) UpsertByID(id interface{}, updateQuery interface{}) (err er
 	return c.UpsertOne(bson.M{"_id": id}, updateQuery)
 }
 
-// UpsertMany performs an update style upsert using updateMany().
+// UpsertAll performs an update style upsert using updateMany().
 // Should no documents match the query, then a new document is created.
-// updateQuery is typically of some sort of $set or $push bson.M.
-func (c *Collection) UpsertMany(filter interface{}, updateQuery interface{}) (matchedCount, updatedCount int, err error) {
-	return c.Update(filter, updateQuery).Upsert().Many()
+// updateQuery is typically of some sort of bson.M{"$set": bson.M{"someKey": newVal} or $push style operation.
+func (c *Collection) UpsertAll(filter interface{}, updateQuery interface{}) (matchedCount, updatedCount int, err error) {
+	return c.Update(filter, updateQuery).Upsert().All()
 }
 
 // ReplaceByID is a friendly helper that wraps Replace(bson.M{"_id": id}, obj).One()
 func (c *Collection) ReplaceByID(id interface{}, obj interface{}) (err error) {
 	return c.Replace(bson.M{"_id": id}, obj).One()
+}
+
+// handleErr
+// TODO: inject ErrNotFound
+func (c *Collection) handleErr(origErr error) error {
+	if origErr == nil {
+		return nil
+	}
+	if errors.Is(origErr, context.DeadlineExceeded) {
+		return ErrTimeoutOccurred
+	}
+	// switch err := origErr.(type) {
+	// case mongo.CommandError:
+
+	// 	// if
+	// default:
+	// }
+	return origErr
 }

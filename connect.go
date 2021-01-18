@@ -31,6 +31,41 @@ type MongoConnectOptions struct {
 	connectionFlag             *ConnectionFlag
 }
 
+// // RawMongoResult is used to represent the raw result that was returned from mongo
+// // I'm missing something in using decoders - this was a solid reference - https://stackoverflow.com/questions/58984435/how-to-ignore-nulls-while-unmarshalling-a-mongodb-document/58985629#58985629
+// type RawMongoResult struct {
+// 	result string
+// }
+
+// func rawMongoResultDecoder() {
+// 	fmt.Println("Hello from rawMongoResultDecoder")
+// }
+
+// func (r RawMongoResult) DecodeValue(ctx bsoncodec.DecodeContext, reader bsonrw.ValueReader, val reflect.Value) error {
+// 	docReader, err := reader.ReadDocument()
+// 	if err != nil {
+// 		return err
+// 	}
+// 	s, reader, err := docReader.ReadElement()
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	fmt.Println(s)
+// 	r.result = s
+// 	return nil
+// }
+
+// func (r *RawMongoResult) String() string {
+// 	bytes, err := json.MarshalIndent(r.result, " ", "\t")
+// 	if err != nil {
+// 		// If there was an error, ignore it and return the raw result
+// 		return r.result
+// 	}
+// 	// Otherwise, return the formatted output
+// 	return string(bytes)
+// }
+
 // clientOptions returns the standard options.ClientOptions that mongo driver is looking for
 func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 	var opts *options.ClientOptions
@@ -51,6 +86,10 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 		nilSliceCodec := bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))
 		registry.RegisterDefaultEncoder(reflect.Slice, nilSliceCodec)
 	}
+
+	// m := RawMongoResult{}
+	// t := reflect.TypeOf(m)
+	// registry.RegisterHookDecoder(t, m)
 	opts.SetRegistry(registry.Build())
 
 	if mopts.connectTimeout != nil {
@@ -421,12 +460,15 @@ func GetTimeoutCtx(timeout *time.Duration) (ctx context.Context, cancel context.
 	ctx = context.Background()
 	// Make cancel a no-op function by default to avoid possible nil function calls
 	// Empty inlined functions end up no-oped by compiler
-	cancel = func() {}
 	if timeout != nil {
 		ctx, cancel = context.WithTimeout(context.Background(), *timeout)
 	}
-	return ctx, cancel
+	return ctx, noopCancelFunc
 }
+
+// noopCancelFunc is a helper for representing a no-op function (so that we can call defer cancel() contexts without panicking)
+// The compiler inlines empty functions as NOOP instructions, so this only introduces a minor overhead at compile-time, not run-time.
+func noopCancelFunc() {}
 
 // ListDatabases returns a list of databases available in the connected cluster as objects that can be interacted with.
 func (conn *Connection) ListDatabases() (dbList []*Database) {

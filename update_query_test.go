@@ -44,12 +44,12 @@ func TestUpdate(t *testing.T) {
 		var enemies []enemy
 		filter := bson.M{"name": nil}
 		update := bson.M{"$set": bson.M{"lastEncounter": now}}
-		matchedCount, updatedCount, err := coll.Update(filter, update).Upsert().Many()
+		matchedCount, updatedCount, err := coll.Update(filter, update).Upsert().All()
 		is.NoError(err, "Could not update many")
 		is.Equal(0, matchedCount)
 		is.Equal(1, updatedCount)
 
-		err = coll.Find(filter).Many(&enemies)
+		err = coll.Find(filter).All(&enemies)
 		is.NoError(err, "Unable to find an object to update by ID")
 		is.Len(enemies, updatedCount)
 	})

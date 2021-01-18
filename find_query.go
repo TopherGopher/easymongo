@@ -3,6 +3,7 @@ package easymongo
 import (
 	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
@@ -71,10 +72,10 @@ type FindQuery struct {
 // 	return q
 // }
 
-// Many executes the specified query using find() and unmarshals
+// All executes the specified query using find() and unmarshals
 // the result into the provided interface. Ensure interface{} is either
 // a slice or a pointer to a slice.
-func (q *FindQuery) Many(results interface{}) error {
+func (q *FindQuery) All(results interface{}) error {
 	// TODO: Check kind to make sure results is a slice or map
 	opts := q.findOptions()
 	ctx, cancelFunc := q.getContext()
@@ -83,8 +84,11 @@ func (q *FindQuery) Many(results interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	// TODO: Inject ErrNotFound if option specified
-	return cursor.All(ctx, results)
+	err = cursor.All(ctx, results)
+	err = q.collection.handleErr(err)
+	return err
 }
 
 // findOneOptions generates the native mongo driver FindOneOptions from the FindQuery
@@ -117,6 +121,11 @@ func (q *FindQuery) One(result interface{}) (err error) {
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
 	err = q.collection.mongoColl.FindOne(ctx, q.filter, opts).Decode(result)
+	err = q.collection.handleErr(err)
+	if err != nil {
+		return err
+	}
+
 	// Depending on ErrNotFound setting, consider unsetting ErrNotFound to make consistent experience
 	// FindOne.Decode() is the only mongo-go-driver function that returns ErrNotFound when
 	// no result was found.
@@ -154,23 +163,15 @@ func (q *FindQuery) findOptions() *options.FindOptions {
 	return o
 }
 
-// Iter returns an iterator that can be used to walk over and unpack the results one at a time.
-func (q *FindQuery) Iter() (iter *Iter, err error) {
+// Cursor results the mongo.Cursor. This is useful when working with large numbers of results.
+// Alternatively, consider calling collection.Find().One() or collection.Find().All().
+func (q *FindQuery) Cursor() (*mongo.Cursor, error) {
 	// TODO: Check kind ot make sure it's a slice or map
 	opts := q.findOptions()
 
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
-	cursor, err := q.collection.mongoColl.Find(ctx, q.filter, opts)
-	if err != nil {
-		return nil, err
-	}
-	// TODO: Inject ErrNotFound if option specified
-	iter = &Iter{
-		cursor: cursor,
-		query:  q,
-	}
-	return iter, nil
+	return q.collection.mongoColl.Find(ctx, q.filter, opts)
 }
 
 // countOptions generates the native mongo driver CountOptions from the FindQuery
@@ -180,7 +181,6 @@ func (q *FindQuery) countOptions() *options.CountOptions {
 		Skip:      q.skip,
 		MaxTime:   q.timeout,
 		Collation: q.collation,
-		// Hint:      q.hintIndices,
 	}
 	if q.hintIndices != nil {
 		o.Hint = *q.hintIndices
@@ -195,19 +195,6 @@ func (q *FindQuery) Count() (int, error) {
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
 	count, err := mongoColl.CountDocuments(ctx, q.filter, opts)
+	err = q.collection.handleErr(err)
 	return int(count), err
-}
-
-// OneAnd consumes the specified query and marshals the result
-// into the provided interface once .Replace() or .Update() are called.
-func (q *FindQuery) OneAnd(result interface{}) *FindAndQuery {
-	// TODO: Check kind to make sure result is a pointer
-	// 	// If previousDocument is not a pointer type, then we need to bail
-	// if interfaceIsUnpackable(previousDocument) {
-	// 	return ErrPointerRequired
-	// }
-	return &FindAndQuery{
-		result: result,
-		Query:  q.Query,
-	}
 }

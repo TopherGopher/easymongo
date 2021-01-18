@@ -29,6 +29,7 @@ type Query struct {
 	collation   *options.Collation
 	timeout     *time.Duration
 	collection  *Collection
+	providedCtx *context.Context
 }
 
 // type QueryI interface {
@@ -99,16 +100,20 @@ func (q *Query) setCollation(c *options.Collation) *Query {
 	return q
 }
 
-// SetContext allows one to override the implied context that is created
+// setContext allows one to override the implied context that is typically created
 // at query time and instead will consume this.
-// TODO: if we allow this, the context will already be ticking before the
-// query is ever executed.
-// func (q *Query) SetContext(ctx *context.Context) *Query { return q }
+func (q *Query) setContext(ctx *context.Context) *Query {
+	q.providedCtx = ctx
+	return q
+}
 
 // getContext returns the appropriate context using the Timeout that was specified either by SetTimeout
 // at the query level, or by consuming the default top-level timeout (specified at initialization time).
 // getContext should be called after the query has been constructed (thus the private specification).
 func (q *Query) getContext() (context.Context, context.CancelFunc) {
+	if q.providedCtx != nil {
+		return *q.providedCtx, noopCancelFunc
+	}
 	if q.timeout != nil {
 		return context.WithTimeout(context.Background(), *q.timeout)
 	}

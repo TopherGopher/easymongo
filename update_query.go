@@ -74,24 +74,22 @@ func (uq *UpdateQuery) One() (err error) {
 	if err == nil && result.MatchedCount == 0 {
 		// TODO: Inject ErrNotFound
 	}
+	err = uq.collection.handleErr(err)
 
 	return err
 }
 
-// Many runs the UpdateQuery against all matching documents.
+// All runs the UpdateQuery against all matching documents.
 // A note that the updatedCount includes the count for upserted documents.
 // No actions are taken until this function is called.
-func (uq *UpdateQuery) Many() (matchedCount, updatedCount int, err error) {
+func (uq *UpdateQuery) All() (matchedCount, updatedCount int, err error) {
 	var result *mongo.UpdateResult
 	mongoColl := uq.collection.mongoColl
 	ctx, cancelFunc := uq.getContext()
 	defer cancelFunc()
 	opts := uq.updateOptions()
 	result, err = mongoColl.UpdateMany(ctx, uq.filter, uq.updateQuery, opts)
-	if err == nil && ctx != nil && ctx.Err() != nil {
-		// If there was a timeout - inject that error
-		err = ErrTimeoutOccurred
-	}
+	err = uq.collection.handleErr(err)
 	if err == nil && result.MatchedCount == 0 {
 		// TODO: Inject ErrNotFound
 	}

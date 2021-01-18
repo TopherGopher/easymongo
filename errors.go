@@ -1,6 +1,10 @@
 package easymongo
 
-import "errors"
+import (
+	"errors"
+
+	"go.mongodb.org/mongo-driver/mongo"
+)
 
 // MongoErr represents any kind of mongo error, regardless of which
 // component of mongo-go-driver threw the error.
@@ -32,9 +36,11 @@ func (me MongoErr) Unwrap() error {
 var (
 	// ErrNotImplemented is raised when a function is not yet supported/complete
 	// This is mostly used to help track development progress
-	ErrNotImplemented = errors.New("this feature has not yet been implemented")
+	ErrNotImplemented = NewMongoErr(errors.New("this feature has not yet been implemented"))
 	// ErrTimeoutOccurred denotes a query exceeded the max call time it was allowed
 	ErrTimeoutOccurred = NewMongoErr(errors.New("timeout during database transaction"))
 	// ErrPointerRequired denotes that the provided result object is being passed by value rather than reference
 	ErrPointerRequired = NewMongoErr(errors.New("a pointer is required in order to unpack the resultant value from a query"))
+	// ErrNoDocuments denotes no documents were found
+	ErrNoDocuments = NewMongoErr(mongo.ErrNoDocuments)
 )

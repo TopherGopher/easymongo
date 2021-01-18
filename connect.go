@@ -2,6 +2,7 @@ package easymongo
 
 import (
 	"context"
+	"errors"
 	"reflect"
 	"sync"
 	"time"
@@ -258,8 +259,7 @@ func (conn *Connection) Ping() (err error) {
 
 	// TODO: Get readpref from singleton
 	err = conn.client.Ping(ctx, readpref.PrimaryPreferred())
-	if err == nil && ctx != nil && ctx.Err() != nil {
-		// A timeout occurrect during the ping
+	if err != nil && errors.Is(err, context.DeadlineExceeded) {
 		err = ErrTimeoutOccurred
 	}
 	return err

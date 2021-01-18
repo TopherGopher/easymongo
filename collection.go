@@ -98,9 +98,7 @@ func (c *Collection) EstimatedCount() (int, error) {
 	ctx, cancelFunc := c.defaultQueryCtx()
 	defer cancelFunc()
 	count, err := c.mongoColl.EstimatedDocumentCount(ctx)
-	if err == nil {
-		err = ctx.Err()
-	}
+	err = c.handleErr(err)
 	return int(count), err
 }
 

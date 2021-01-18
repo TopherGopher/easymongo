@@ -47,4 +47,14 @@ func TestConnect(t *testing.T) {
 		tmpConn := easymongo.ConnectWith(conn.MongoURI()).FromMongoDriverClient(conn.MongoDriverClient())
 		is.NoError(tmpConn.Ping(), "Could not ping the test instance")
 	})
+	t.Run("Connect to a DB with different flags", func(t *testing.T) {
+		is := assert.New(t)
+		db := conn.DatabaseByConnectionType("my_db", easymongo.DefaultPrimary)
+		is.NotNil(db, "The database shouldn't be empty")
+		db = conn.DatabaseByConnectionType("my_db",
+			easymongo.ReadConcernLinearizable|easymongo.ReadPreferencePrimaryPreferred|easymongo.WriteConcernW3)
+		is.NotNil(db, "The database shouldn't be empty")
+		db = conn.DatabaseByConnectionType("my_db", easymongo.DefaultSecondary)
+		is.NotNil(db, "The database shouldn't be empty")
+	})
 }

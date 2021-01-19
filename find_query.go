@@ -242,7 +242,7 @@ func (q *FindQuery) DistinctStrings(fieldName string) (stringSlice []string, err
 		}
 		if _, found := m["-"+fieldName]; found {
 			// A reverse sort was specified on this field
-			sort.Reverse(sort.StringSlice(stringSlice))
+			sort.Sort(sort.Reverse(sort.StringSlice(stringSlice)))
 		}
 	}
 	return stringSlice, err

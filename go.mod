@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go v1.36.16 // indirect
 	github.com/klauspost/compress v1.11.4 // indirect
 	github.com/stretchr/testify v1.6.1
-	github.com/tophergopher/mongotest v0.0.21
+	github.com/tophergopher/mongotest v0.0.22
 	go.mongodb.org/mongo-driver v1.4.4
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect
 	golang.org/x/net v0.0.0-20201224014010-6772e930b67b // indirect
@@ -15,4 +15,4 @@ require (
 	golang.org/x/sys v0.0.0-20201223074533-0d417f636930 // indirect
 )
 
-// replace github.com/tophergopher/mongotest v0.0.21
+// replace github.com/tophergopher/mongotest v0.0.22

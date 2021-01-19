@@ -282,10 +282,11 @@ func (conn *Connection) Database(dbName string) *Database {
 	}
 }
 
-type ConnectionFlag uint8
+type ConnectionFlag int32
 
 const (
-	ReadConcernAvailable ConnectionFlag = iota + 1
+	unset ConnectionFlag = 1 << iota
+	ReadConcernAvailable
 	ReadConcernLinearizable
 	ReadConcernLocal
 	ReadConcernMajority
@@ -323,43 +324,41 @@ func (connectFlag ConnectionFlag) mongoDriverDatabaseOptions() *options.Database
 	wOpts := make([]writeconcern.Option, 0)
 
 	switch {
-	case connectFlag&ReadConcernAvailable == 1:
+	case connectFlag&ReadConcernAvailable != 0:
 		opts.SetReadConcern(readconcern.Available())
-	case connectFlag&ReadConcernLinearizable == 1:
+	case connectFlag&ReadConcernLinearizable != 0:
 		opts.SetReadConcern(readconcern.Linearizable())
-	case connectFlag&ReadConcernLocal == 1:
+	case connectFlag&ReadConcernLocal != 0:
 		opts.SetReadConcern(readconcern.Local())
-	case connectFlag&ReadConcernMajority == 1:
+	case connectFlag&ReadConcernMajority != 0:
 		opts.SetReadConcern(readconcern.Majority())
-	case connectFlag&ReadConcernSnapshot == 1:
+	case connectFlag&ReadConcernSnapshot != 0:
 		opts.SetReadConcern(readconcern.Snapshot())
 	}
 	switch {
-	case connectFlag&ReadPreferenceNearest == 1:
+	case connectFlag&ReadPreferenceNearest != 0:
 		opts.SetReadPreference(readpref.Nearest())
-	case connectFlag&ReadPreferencePrimary == 1:
+	case connectFlag&ReadPreferencePrimary != 0:
 		opts.SetReadPreference(readpref.Primary())
-	case connectFlag&ReadPreferencePrimaryPreferred == 1:
+	case connectFlag&ReadPreferencePrimaryPreferred != 0:
 		opts.SetReadPreference(readpref.PrimaryPreferred())
-	case connectFlag&ReadPreferenceSecondary == 1:
+	case connectFlag&ReadPreferenceSecondary != 0:
 		opts.SetReadPreference(readpref.Secondary())
-	case connectFlag&ReadPreferenceSecondaryPreferred == 1:
+	case connectFlag&ReadPreferenceSecondaryPreferred != 0:
 		opts.SetReadPreference(readpref.SecondaryPreferred())
 	}
 
-	if connectFlag&WriteConcernJournal == 1 {
+	if connectFlag&WriteConcernJournal != 0 {
 		wOpts = append(wOpts, writeconcern.J(true))
 	}
-	if connectFlag&WriteConcernW1 == 1 {
+	if connectFlag&WriteConcernW1 != 0 {
 		wOpts = append(wOpts, writeconcern.W(1))
-	}
-	if connectFlag&WriteConcernW2 == 1 {
+	} else if connectFlag&WriteConcernW2 != 0 {
 		wOpts = append(wOpts, writeconcern.W(2))
-	}
-	if connectFlag&WriteConcernW3 == 1 {
+	} else if connectFlag&WriteConcernW3 != 0 {
 		wOpts = append(wOpts, writeconcern.W(3))
 	}
-	if connectFlag&WriteConcernMajority == 1 {
+	if connectFlag&WriteConcernMajority != 0 {
 		wOpts = append(wOpts, writeconcern.WMajority())
 	}
 	if len(wOpts) != 0 {
@@ -374,43 +373,43 @@ func (connectFlag ConnectionFlag) mongoDriverClientOptions() *options.ClientOpti
 	wOpts := make([]writeconcern.Option, 0)
 
 	switch {
-	case connectFlag&ReadConcernAvailable == 1:
+	case connectFlag&ReadConcernAvailable != 0:
 		opts.SetReadConcern(readconcern.Available())
-	case connectFlag&ReadConcernLinearizable == 1:
+	case connectFlag&ReadConcernLinearizable != 0:
 		opts.SetReadConcern(readconcern.Linearizable())
-	case connectFlag&ReadConcernLocal == 1:
+	case connectFlag&ReadConcernLocal != 0:
 		opts.SetReadConcern(readconcern.Local())
-	case connectFlag&ReadConcernMajority == 1:
+	case connectFlag&ReadConcernMajority != 0:
 		opts.SetReadConcern(readconcern.Majority())
-	case connectFlag&ReadConcernSnapshot == 1:
+	case connectFlag&ReadConcernSnapshot != 0:
 		opts.SetReadConcern(readconcern.Snapshot())
 	}
 	switch {
-	case connectFlag&ReadPreferenceNearest == 1:
+	case connectFlag&ReadPreferenceNearest != 0:
 		opts.SetReadPreference(readpref.Nearest())
-	case connectFlag&ReadPreferencePrimary == 1:
+	case connectFlag&ReadPreferencePrimary != 0:
 		opts.SetReadPreference(readpref.Primary())
-	case connectFlag&ReadPreferencePrimaryPreferred == 1:
+	case connectFlag&ReadPreferencePrimaryPreferred != 0:
 		opts.SetReadPreference(readpref.PrimaryPreferred())
-	case connectFlag&ReadPreferenceSecondary == 1:
+	case connectFlag&ReadPreferenceSecondary != 0:
 		opts.SetReadPreference(readpref.Secondary())
-	case connectFlag&ReadPreferenceSecondaryPreferred == 1:
+	case connectFlag&ReadPreferenceSecondaryPreferred != 0:
 		opts.SetReadPreference(readpref.SecondaryPreferred())
 	}
 
-	if connectFlag&WriteConcernJournal == 1 {
+	if connectFlag&WriteConcernJournal != 0 {
 		wOpts = append(wOpts, writeconcern.J(true))
 	}
-	if connectFlag&WriteConcernW1 == 1 {
+	if connectFlag&WriteConcernW1 != 0 {
 		wOpts = append(wOpts, writeconcern.W(1))
 	}
-	if connectFlag&WriteConcernW2 == 1 {
+	if connectFlag&WriteConcernW2 != 0 {
 		wOpts = append(wOpts, writeconcern.W(2))
 	}
-	if connectFlag&WriteConcernW3 == 1 {
+	if connectFlag&WriteConcernW3 != 0 {
 		wOpts = append(wOpts, writeconcern.W(3))
 	}
-	if connectFlag&WriteConcernMajority == 1 {
+	if connectFlag&WriteConcernMajority != 0 {
 		wOpts = append(wOpts, writeconcern.WMajority())
 	}
 	if len(wOpts) != 0 {

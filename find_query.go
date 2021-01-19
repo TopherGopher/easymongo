@@ -1,6 +1,7 @@
 package easymongo
 
 import (
+	"sort"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -197,4 +198,52 @@ func (q *FindQuery) Count() (int, error) {
 	count, err := mongoColl.CountDocuments(ctx, q.filter, opts)
 	err = q.collection.handleErr(err)
 	return int(count), err
+}
+
+func (q *FindQuery) findDistinctOptions() *options.DistinctOptions {
+	return &options.DistinctOptions{
+		Collation: q.Query.collation,
+		MaxTime:   q.Query.timeout,
+	}
+}
+
+// Distinct returns an array of the distinct elements in the provided fieldName.
+// A note that interfaceSlice does not contain the full document but rather just the
+// value from the provided field.
+func (q *FindQuery) Distinct(fieldName string) (interfaceSlice []interface{}, err error) {
+	opts := q.findDistinctOptions()
+	mongoColl := q.collection.mongoColl
+	ctx, cancelFunc := q.getContext()
+	defer cancelFunc()
+	interfaceSlice, err = mongoColl.Distinct(ctx, fieldName, q.filter, opts)
+	err = q.collection.handleErr(err)
+	return interfaceSlice, err
+}
+
+// DistinctStrings returns a distinct list of strings using the provided query/field name.
+func (q *FindQuery) DistinctStrings(fieldName string) (stringSlice []string, err error) {
+	iSlice, err := q.Distinct(fieldName)
+	if err != nil {
+		return stringSlice, err
+	}
+	stringSlice = make([]string, len(iSlice))
+	for i, iFace := range iSlice {
+		if val, ok := iFace.(string); ok {
+			stringSlice[i] = val
+		} else {
+			return stringSlice, ErrWrongType
+		}
+	}
+	if q.sortFields != nil {
+		m := q.sortFields.Map()
+		if _, found := m[fieldName]; found {
+			// A sort was specified on this field
+			sort.Strings(stringSlice)
+		}
+		if _, found := m["-"+fieldName]; found {
+			// A reverse sort was specified on this field
+			sort.Reverse(sort.StringSlice(stringSlice))
+		}
+	}
+	return stringSlice, err
 }

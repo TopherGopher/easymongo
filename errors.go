@@ -43,4 +43,6 @@ var (
 	ErrPointerRequired = NewMongoErr(errors.New("a pointer is required in order to unpack the resultant value from a query"))
 	// ErrNoDocuments denotes no documents were found
 	ErrNoDocuments = NewMongoErr(mongo.ErrNoDocuments)
+	// ErrWrongType indicates the specified distinct operation did not work. Check the field type that you are attempting to use distinct on.
+	ErrWrongType = NewMongoErr(errors.New("the type specified could not be decoded into"))
 )

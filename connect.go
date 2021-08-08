@@ -8,7 +8,6 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
 	"go.mongodb.org/mongo-driver/event"
@@ -374,6 +373,12 @@ func (conn *Connection) Database(dbName string) *Database {
 	}
 }
 
+// D is a shorthand for returning the Database object for the provided database name.
+// It wraps Database() and provides identical functionality.
+func (conn *Connection) D(dbName string) *Database {
+	return conn.Database(dbName)
+}
+
 type ConnectionFlag int32
 
 const (
@@ -424,8 +429,7 @@ func (cb *ConnectionBuilder) Debug() *ConnectionBuilder {
 // TODO: Handle nil/deactivating logger
 func (cb *ConnectionBuilder) Logger(logger Logger) *ConnectionBuilder {
 	if logger == nil {
-		cb.connection.log = logrus.New()
-		// cb.connection.log = zlog.
+		cb.connection.log = NewDefaultLogger()
 	} else {
 		cb.connection.log = logger
 	}

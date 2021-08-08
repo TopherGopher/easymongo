@@ -50,11 +50,12 @@ func (db *Database) CollectionNames() []string {
 	return collectionNames
 }
 
-// ListCollections returns a list of Collection objects that can be actioned against.
+// ListCollections returns a list of Collection objects that can be queried against.
+// If you just need the collection names as strings, use db.CollectionNames() instead
 func (db *Database) ListCollections() ([]*Collection, error) {
-	collectionNames, err := db.CollectionNames()
-	if collectionNames == nil || err != nil {
-		return []*Collection{}, err
+	collectionNames := db.CollectionNames()
+	if len(collectionNames) == 0 {
+		return []*Collection{}, mongo.ErrNoDocuments
 	}
 	colls := make([]*Collection, len(collectionNames))
 	for i, collName := range collectionNames {

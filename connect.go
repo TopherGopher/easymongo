@@ -578,7 +578,8 @@ func GetTimeoutCtx(timeout *time.Duration) (ctx context.Context, cancel context.
 	// Make cancel a no-op function by default to avoid possible nil function calls
 	// Empty inlined functions end up no-oped by compiler
 	if timeout != nil {
-		ctx, cancel = context.WithTimeout(context.Background(), *timeout)
+		// TODO: Should this be a
+		return context.WithTimeout(context.Background(), *timeout)
 	}
 	return ctx, noopCancelFunc
 }

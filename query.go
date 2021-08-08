@@ -114,9 +114,6 @@ func (q *Query) getContext() (context.Context, context.CancelFunc) {
 	if q.providedCtx != nil {
 		return *q.providedCtx, noopCancelFunc
 	}
-	if q.timeout != nil {
-		return context.WithTimeout(context.Background(), *q.timeout)
-	}
 	return q.collection.defaultQueryCtx()
 }
 

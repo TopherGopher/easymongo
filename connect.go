@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -21,6 +20,10 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
+
+// noopCancelFunc is a helper for representing a no-op function (so that we can call defer cancel() contexts without panicking)
+// The compiler inlines empty functions as NOOP instructions, so this only introduces a minor overhead at compile-time, not run-time.
+func noopCancelFunc() {}
 
 // MongoConnectOptions holds helpers for configuring a new mongo connection.
 type MongoConnectOptions struct {
@@ -576,10 +579,6 @@ func GetTimeoutCtx(timeout *time.Duration) (ctx context.Context, cancel context.
 	return ctx, noopCancelFunc
 }
 
-// noopCancelFunc is a helper for representing a no-op function (so that we can call defer cancel() contexts without panicking)
-// The compiler inlines empty functions as NOOP instructions, so this only introduces a minor overhead at compile-time, not run-time.
-func noopCancelFunc() {}
-
 // ListDatabases returns a list of databases available in the connected cluster as objects that can be interacted with.
 func (conn *Connection) ListDatabases() (dbList []*Database) {
 	dbNames := conn.DatabaseNames()
@@ -588,27 +587,4 @@ func (conn *Connection) ListDatabases() (dbList []*Database) {
 		dbList[i] = conn.Database(dbName)
 	}
 	return dbList
-}
-
-// globalConnection is used to cache the most recent cluster connected to
-var globalConnection *Connection
-
-// connectionLock should be used whenever modifications are made to globalConnection
-var connectionLock sync.RWMutex
-
-// setGlobalConnection sets the cached global connection to the provided connection value.
-func setGlobalConnection(conn *Connection) {
-	connectionLock.Lock()
-	defer connectionLock.Unlock()
-	globalConnection = conn
-}
-
-// GetCurrentConnection returns the current connection cached in the global context.
-func GetCurrentConnection() *Connection {
-	connectionLock.RLock()
-	defer connectionLock.RUnlock()
-	if globalConnection == nil {
-		panic("Connect() or ConnectWith() must be called prior to GetCurrentConnection()")
-	}
-	return globalConnection
 }

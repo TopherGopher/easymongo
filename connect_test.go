@@ -3,6 +3,7 @@ package easymongo_test
 import (
 	"testing"
 
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/tophergopher/easymongo"
 )
@@ -17,8 +18,9 @@ func TestConnect(t *testing.T) {
 	t.Run("ConnectWithOptions", func(t *testing.T) {
 		is := assert.New(t)
 		// TODO: Rest of flags
+		log := logrus.New()
 		tmpConn, err := easymongo.ConnectWith(conn.MongoURI()).Flags(
-			easymongo.DefaultAnywhere).Connect()
+			easymongo.DefaultAnywhere).Debug().Logger(log).Connect()
 		is.NoError(err, "Issue connecting to the test instance using options")
 		is.NoError(tmpConn.Ping(), "Could not ping the test instance")
 	})

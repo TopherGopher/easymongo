@@ -2,13 +2,17 @@ package easymongo
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"go.mongodb.org/mongo-driver/bson/bsoncodec"
 	"go.mongodb.org/mongo-driver/bson/bsonoptions"
+	"go.mongodb.org/mongo-driver/event"
 	"go.mongodb.org/mongo-driver/mongo/readconcern"
 	"go.mongodb.org/mongo-driver/mongo/writeconcern"
 
@@ -30,6 +34,8 @@ type MongoConnectOptions struct {
 	numWritesForConsensus      *int
 	runHealthCheckOnConnection bool
 	connectionFlag             *ConnectionFlag
+	// Controls whether debug printing is enabled
+	debugMode bool
 }
 
 // // RawMongoResult is used to represent the raw result that was returned from mongo
@@ -68,17 +74,17 @@ type MongoConnectOptions struct {
 // }
 
 // clientOptions returns the standard options.ClientOptions that mongo driver is looking for
-func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
+func (conn *Connection) clientOptions() *options.ClientOptions {
 	var opts *options.ClientOptions
-	if mopts.connectionFlag != nil {
-		opts = mopts.connectionFlag.mongoDriverClientOptions().ApplyURI(mopts.mongoURI)
+	if conn.mongoOptions.connectionFlag != nil {
+		opts = conn.mongoOptions.connectionFlag.mongoDriverClientOptions().ApplyURI(conn.mongoOptions.mongoURI)
 	} else {
-		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(mopts.mongoURI)
+		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(conn.mongoOptions.mongoURI)
 	}
 
 	registry := bson.NewRegistryBuilder()
 	// bsoncodec.DefaultValueEncoders{}.RegisterDefaultEncoders(registry)
-	if mopts.nilSlicesAreNull != nil && *mopts.nilSlicesAreNull {
+	if conn.mongoOptions.nilSlicesAreNull != nil && *conn.mongoOptions.nilSlicesAreNull {
 		// The mongo-driver will set unintialized slices to a null type rather than array type by default.
 		// If a user specifies that they desire this behavior, this is a no-op.
 	} else {
@@ -86,6 +92,7 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 		// involving slice mutation less prone to error
 		nilSliceCodec := bsoncodec.NewSliceCodec(bsonoptions.SliceCodec().SetEncodeNilAsEmpty(true))
 		registry.RegisterDefaultEncoder(reflect.Slice, nilSliceCodec)
+		registry.RegisterDefaultDecoder(reflect.Slice, nilSliceCodec)
 	}
 
 	// m := RawMongoResult{}
@@ -93,14 +100,54 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 	// registry.RegisterHookDecoder(t, m)
 	opts.SetRegistry(registry.Build())
 
-	if mopts.connectTimeout != nil {
+	if conn.mongoOptions.connectTimeout != nil {
 		// Limit how long to wait to find an available server before erroring (default 30 seconds)
-		opts.SetServerSelectionTimeout(*mopts.connectTimeout)
+		opts.SetServerSelectionTimeout(*conn.mongoOptions.connectTimeout)
 		// Limit how long to wait before a connection is established (default 30 seconds)
-		opts.SetConnectTimeout(*mopts.connectTimeout)
+		opts.SetConnectTimeout(*conn.mongoOptions.connectTimeout)
 	}
-	if mopts.numWritesForConsensus != nil {
-		opts.SetWriteConcern(writeconcern.New(writeconcern.W(*mopts.numWritesForConsensus)))
+	if conn.mongoOptions.numWritesForConsensus != nil {
+		opts.SetWriteConcern(writeconcern.New(writeconcern.W(*conn.mongoOptions.numWritesForConsensus)))
+	}
+	if conn.mongoOptions.debugMode {
+		// Debug mode is enabled
+		monitor := &event.CommandMonitor{
+			Started: func(_ context.Context, e *event.CommandStartedEvent) {
+				out := map[string]interface{}{}
+				err := json.Unmarshal([]byte(e.Command.String()), &out)
+				if err != nil {
+					fmt.Println(e.Command)
+					panic(err)
+				}
+				bytes, _ := json.MarshalIndent(out, "  ", "\t")
+				conn.log.Debugf("Command executing against DB: '%s' Command: %s", e.DatabaseName, string(bytes))
+			},
+			Succeeded: func(_ context.Context, e *event.CommandSucceededEvent) {
+				out := map[string]interface{}{}
+				err := json.Unmarshal([]byte(e.Reply.String()), &out)
+				if err != nil {
+					conn.log.Errorf("Could not parse DB reply into a map: %w. Raw reply: %s", err, e.Reply)
+				}
+				// There's more in e.Reply than just the actual data that's returned to be unpacked if it's
+				// and aggregation query.
+				// Use a type assertion to filter that data down.
+				var bytes []byte
+				if cursorData, found := out["cursor"]; found {
+					if returnedResult, isMap := cursorData.(map[string]interface{}); isMap {
+						if val, ok := returnedResult["firstBatch"]; ok {
+							bytes, _ = json.MarshalIndent(val, "  ", "\t")
+						}
+					}
+				} else {
+					bytes, _ = json.MarshalIndent(out, "  ", "\t")
+				}
+				conn.log.Debugf("DB execution success: Result: %s", string(bytes))
+			},
+			Failed: func(_ context.Context, e *event.CommandFailedEvent) {
+				conn.log.Errorf("DB command failed: %s", e.Failure)
+			},
+		}
+		opts.SetMonitor(monitor)
 	}
 
 	// TODO: TLS config
@@ -152,8 +199,8 @@ func (mopts MongoConnectOptions) clientOptions() *options.ClientOptions {
 // }
 
 // Connect connects to the given mongo URI.
-// Connect wraps ConnectWithOptions. If you are using just a mongoUri for connection, this should be all you
-// need. However, if you need to configure additional options, it is recommened to instead use ConnectWithOptions.
+// Connect wraps ConnectWith(mongoUri).Connect(). If you are using just a mongoUri for connection, this function should be all you
+// need. However, if you need to configure additional options, it is recommened to instead use ConnectWith().Connect().
 // If a connection does not suceed when using Connect, then a panic occurs.
 func Connect(mongoURI string) *Connection {
 	connection, err := ConnectWith(mongoURI).Connect()
@@ -223,7 +270,7 @@ func (cb *ConnectionBuilder) FromMongoDriverClient(client *mongo.Client) *Connec
 // connection value and instead using the value explicitly returned from this function, then disregard this side-effect.
 // If a connection does not succeed, then an error is returned.
 func (cb *ConnectionBuilder) Connect() (*Connection, error) {
-	opts := cb.connection.mongoOptions.clientOptions()
+	opts := cb.connection.clientOptions()
 	if cb.connection.client == nil {
 		client, err := mongo.NewClient(opts)
 		if err != nil {
@@ -245,6 +292,43 @@ func (cb *ConnectionBuilder) Connect() (*Connection, error) {
 type Connection struct {
 	mongoOptions MongoConnectOptions
 	client       *mongo.Client
+	log          Logger
+}
+
+// EnableDebug enables debug, regenerates the client options
+// and reconnects to the mongo client.
+// This should never be done in a production environment unless you're, you know, debugging.
+// The connection is cached as the new global connection
+// If a logger has not been set (using conn.SetLogger)
+func (conn *Connection) EnableDebug() error {
+	// Turn on debug mode
+	conn.mongoOptions.debugMode = true
+	ctx, cancelFunc := conn.operationCtx()
+	defer cancelFunc()
+	// Create a new client
+	client, err := mongo.NewClient(conn.clientOptions())
+	if err != nil {
+		return err
+	}
+	// Drop this client into the connection obect
+	*conn.client = *client
+	if conn.log == nil {
+		conn.SetLogger(NewDefaultLogger())
+		conn.log.Debugf("No logger was set using Connection.SetLogger(). Initialized a new one for debugging.")
+	}
+	// And reconnect to the client
+	if err = conn.client.Connect(ctx); err != nil {
+		return err
+	}
+	setGlobalConnection(conn)
+
+	return nil
+}
+
+// SetLogger overrides a connection's logger object
+// This is used primarily when enabling debug mode
+func (conn *Connection) SetLogger(logger Logger) {
+	conn.log = logger
 }
 
 // MongoURI returns the URI that the mongo instance is connected to
@@ -302,10 +386,14 @@ const (
 	ReadPreferenceSecondaryPreferred
 
 	WriteConcernJournal
+	// WriteConcernW1 waits for a single node in a cluster to acknowledge a write before returning
 	WriteConcernW1
+	// WriteConcernW2 waits for two nodes in a cluster to acknowledge a write before returning
 	WriteConcernW2
+	// WriteConcernW3 waits for a three nodes in a cluster to acknowledge a write before returning
 	WriteConcernW3
-	// WriteConcernMajority waits for a majority of
+	// WriteConcernMajority waits for a majority of nodes in a cluster to acknowledge a write operation
+	// before the query is declared complete.
 	WriteConcernMajority
 )
 
@@ -317,6 +405,25 @@ const (
 	// DefaultAnywhere connects to the first available node (primary or secondary) for reading. It uses majority both for write confirmations and while waiting for reads.
 	DefaultAnywhere = ReadConcernMajority | ReadPreferenceNearest | WriteConcernMajority
 )
+
+// Debug will log the raw commands the server is running to the debug level
+func (cb *ConnectionBuilder) Debug() *ConnectionBuilder {
+	cb.connection.mongoOptions.debugMode = true
+	return cb
+}
+
+// Logger overrides the default logger in use
+// TODO: Handle nil/deactivating logger
+func (cb *ConnectionBuilder) Logger(logger Logger) *ConnectionBuilder {
+	if logger == nil {
+		cb.connection.log = logrus.New()
+		// cb.connection.log = zlog.
+	} else {
+		cb.connection.log = logger
+	}
+
+	return cb
+}
 
 // mongoDriverDatabaseOptions returns the associated options for the provided connectFlag(s)
 func (connectFlag ConnectionFlag) mongoDriverDatabaseOptions() *options.DatabaseOptions {

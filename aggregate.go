@@ -51,20 +51,6 @@ func (p *AggregationQuery) aggregateOptions() *options.AggregateOptions {
 	return opts
 }
 
-// // FetchRawResult is a somewhat odd but handy helper. Sometimes it's tricky to understand why
-// // values aren't unpacking as anticipated into your struct. In this case, call this function
-// // to see the key/value pairs that are being returned. I haven't found a good way to display
-// // the raw original result returned from the query, but it's sometimes helpful to view these key/value pairs.
-// TODO: Figure out how to get at the raw result that comes back from mongo.
-// func (p *AggregationQuery) FetchRawResult() (string, error) {
-// 	arr := RawMongoResult{}
-// 	err := p.collection.Aggregate(p.filter).All(&arr)
-// 	if err != nil {
-// 		return "", err
-// 	}
-// 	return arr.String(), err
-// }
-
 // All executes the aggregation and returns the resultant output to the provided result object.
 func (p *AggregationQuery) All(result interface{}) error {
 	cursor, err := p.Cursor()

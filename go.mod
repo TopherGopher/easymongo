@@ -6,6 +6,8 @@ require (
 	github.com/Microsoft/go-winio v0.4.16 // indirect
 	github.com/aws/aws-sdk-go v1.36.16 // indirect
 	github.com/klauspost/compress v1.11.4 // indirect
+	github.com/rs/zerolog v1.20.0 // indirect
+	github.com/sirupsen/logrus v1.7.0
 	github.com/stretchr/testify v1.6.1
 	github.com/tophergopher/mongotest v0.0.22
 	go.mongodb.org/mongo-driver v1.4.4

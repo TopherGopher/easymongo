@@ -9,7 +9,6 @@ import (
 
 func TestGetDatabase(t *testing.T) {
 	setup(t)
-	defer teardown(t)
 	var err error
 	coll := createBatmanArchive(t)
 	dbName := coll.GetDatabase().Name()

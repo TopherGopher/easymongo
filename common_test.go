@@ -22,6 +22,7 @@ func setup(t *testing.T) {
 	} else {
 		t.FailNow()
 	}
+
 }
 func teardown(t *testing.T) {
 	if conn != nil {
@@ -39,6 +40,8 @@ type enemy struct {
 	Notes         string             `bson:"notes,omitempty"`
 	LastEncounter *time.Time         `bson:"lastEncounter"`
 	Deceased      bool               `bson:"deceased"`
+	TimesFought   int                `bson:"timesFought"`
+	Evilness      float64            `bson:"evilness"`
 }
 
 // Create some test data
@@ -48,12 +51,12 @@ func createBatmanArchive(t *testing.T) *easymongo.Collection {
 	collName := "enemies"
 	coll := conn.Database(dbName).C(collName)
 	enemies := []enemy{
-		0: {ID: primitive.NewObjectID(), Name: "The Joker", Notes: "Follow-up about his scars."},
-		1: {ID: primitive.NewObjectID(), Name: "Superman", Notes: "Enemy status depends on the day - we are enemies every day on Wednesday from 4-5:30pm."},
-		2: {ID: primitive.NewObjectID(), Name: "Poison Ivy"},
-		3: {ID: primitive.NewObjectID(), Name: "Two-Face", Notes: "Sometimes this guy is great, othertimes, man, what a jerk"},
-		4: {ID: primitive.NewObjectID(), Name: "Edward Nigma"},
-		5: {ID: primitive.NewObjectID(), Name: "My own demons", Deceased: true},
+		0: {ID: primitive.NewObjectID(), Name: "The Joker", Notes: "Follow-up about his scars.", TimesFought: 3, Evilness: 0.0},
+		1: {ID: primitive.NewObjectID(), Name: "Superman", Notes: "Enemy status depends on the day - we are enemies every day on Wednesday from 4-5:30pm.", TimesFought: 3, Evilness: 0.2},
+		2: {ID: primitive.NewObjectID(), Name: "Poison Ivy", TimesFought: 2, Evilness: 0.4},
+		3: {ID: primitive.NewObjectID(), Name: "Two-Face", Notes: "Sometimes this guy is great, othertimes, man, what a jerk", TimesFought: 4, Evilness: 0.6},
+		4: {ID: primitive.NewObjectID(), Name: "Edward Nigma", TimesFought: 3, Evilness: 0.8},
+		5: {ID: primitive.NewObjectID(), Name: "My own demons", Deceased: true, TimesFought: 1, Evilness: 0.8},
 	}
 	ids, err := coll.Insert().Many(enemies)
 	is.NoError(err, "Couldn't setup the collection for the test")

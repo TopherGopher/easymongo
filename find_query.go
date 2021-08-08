@@ -1,16 +1,18 @@
 package easymongo
 
 import (
+	"fmt"
 	"sort"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // Find allows a user to execute a standard find() query.
-// findOne(), find() and findAnd*() is run when a user calls:
-//      q.One(), q.Many(). q.FindAnd().Replace(), q.FindAnd().Update() and q.FindAnd().Delete()
+// findOne(), find() and findAnd*() are executed when a user calls:
+//      q.One(), q.Many(). q.FindAnd().Replace(), q.FindAnd().Update(), q.FindAnd().Delete()
 // TODO: Consider using bsoncore.Doc rather than interface?
 func (c *Collection) Find(filter interface{}) (q *FindQuery) {
 	q = &FindQuery{
@@ -210,20 +212,137 @@ func (q *FindQuery) findDistinctOptions() *options.DistinctOptions {
 // Distinct returns an array of the distinct elements in the provided fieldName.
 // A note that interfaceSlice does not contain the full document but rather just the
 // value from the provided field.
+// Sort/Limit/Skip are presently ignored.
 func (q *FindQuery) Distinct(fieldName string) (interfaceSlice []interface{}, err error) {
+	// opts := q.findDistinctOptions()
+	// mongoColl := q.collection.mongoColl
+	// ctx, cancelFunc := q.getContext()
+	// defer cancelFunc()
+	// interfaceSlice, err = mongoColl.Distinct(ctx, fieldName, q.filter, opts)
+	// err = q.collection.handleErr(err)
+	pipeline := []bson.M{
+		0: {
+			"$match": q.filter,
+		},
+	}
+
+	if q.sortFields != nil {
+		pipeline = append(pipeline, bson.M{
+			"$sort": *q.sortFields,
+		})
+	}
+
+	if q.skip != nil && *q.skip > 0 {
+		pipeline = append(pipeline, bson.M{
+			"$skip": *q.skip,
+		})
+	}
+	if q.limit != nil && *q.limit >= 0 {
+		pipeline = append(pipeline, bson.M{
+			"$limit": *q.limit,
+		})
+	}
+	pipeline = append(pipeline, []bson.M{
+		{
+			"$group": bson.M{
+				"_id": 0,
+				"distinctValues": bson.M{
+					"$addToSet": "$" + fieldName,
+				},
+			},
+		},
+		// {
+		// 	"$project": bson.M{
+		// 		"_id": "$distinctValues",
+		// 		// 		"arrayAsObj": bson.M{
+		// 		// 			"$arrayToObject": "$distinctValues", // Making array an object
+		// 		// 		},
+		// 	},
+		// },
+		// {
+		// 	"$replaceRoot": bson.M{
+		// 		"newRoot": "$distinctValues",
+		// 	},
+		// },
+	}...)
+
+	// { $replaceRoot: { newRoot: { $ifNull: [ "$name", { _id: "$_id", missingName: true} ] } } }
+	// distinctDocuments := []distinctDocument{}
+	d := distinctDocument{}
+	err = q.collection.Aggregate(pipeline).One(&d)
+	// if err != nil {
+	// 	return interfaceSlice, err
+	// } else if len(distinctDocuments) == 1 && len(distinctDocuments[0].distinctValues) > 0 {
+	// 	return distinctDocuments[0].distinctValues, nil
+	// }
+	return d.DistinctValues, err
+}
+
+type distinctDocument struct {
+	DistinctValues []interface{} `bson:"distinctValues"`
+}
+
+// DistinctInts returns a list of distinct integers for a given field.
+func (q *FindQuery) DistinctInts(fieldName string) (intSlice []int, err error) {
+	iSlice, err := q.Distinct(fieldName)
+	if err != nil {
+		return intSlice, err
+	}
+	intSlice = make([]int, len(iSlice))
+	for i, iFace := range iSlice {
+		switch val := iFace.(type) {
+		case int:
+			intSlice[i] = val
+		case int32:
+			intSlice[i] = int(val)
+		case int64:
+			intSlice[i] = int(val)
+		default:
+			return intSlice, fmt.Errorf("the field '%s' had values that could not be coerced to ints - raw value type: %T example: %v", fieldName, val, val)
+		}
+	}
+	// TODO: For whatever reason, sort doesn't seem to work in the pipeline aggregation when dealing with ints
+	sort.Ints(intSlice)
+	return intSlice, nil
+}
+
+// DistinctFloat64s returns a list of distinct float64s for a given field.
+func (q *FindQuery) DistinctFloat64s(fieldName string) (floatSlice []float64, err error) {
+	iSlice, err := q.Distinct(fieldName)
+	if err != nil {
+		return floatSlice, err
+	}
+	floatSlice = make([]float64, len(iSlice))
+	for i, iFace := range iSlice {
+		switch val := iFace.(type) {
+		case float32:
+			floatSlice[i] = float64(val)
+		case float64:
+			floatSlice[i] = val
+		default:
+			return floatSlice, fmt.Errorf("the field '%s' had values that could not be coerced to float64 - raw value type: %T example: %v", fieldName, val, val)
+		}
+	}
+	// TODO: For whatever reason, sort doesn't seem to work in the pipeline aggregation when dealing with numbers
+	// Need to be conditional about this sort
+	sort.Float64s(floatSlice)
+	return floatSlice, nil
+}
+
+// DistinctStrings returns a distinct list of strings using the provided query/field name.
+// Sorting/Limiting/Skipping are supported, with the caveat that only the Skip/Sort/Limit options are supported
+//     coll.Find().Sort(fieldName).Limit(2).Skip(1).DistinctStrings(fieldName)
+func (q *FindQuery) DistinctStrings(fieldName string) (stringSlice []string, err error) {
+	// iSlice, err := q.Distinct(fieldName)
+	// if err != nil {
+	// 	return stringSlice, err
+	// }
 	opts := q.findDistinctOptions()
 	mongoColl := q.collection.mongoColl
 	ctx, cancelFunc := q.getContext()
 	defer cancelFunc()
-	interfaceSlice, err = mongoColl.Distinct(ctx, fieldName, q.filter, opts)
-	err = q.collection.handleErr(err)
-	return interfaceSlice, err
-}
-
-// DistinctStrings returns a distinct list of strings using the provided query/field name.
-func (q *FindQuery) DistinctStrings(fieldName string) (stringSlice []string, err error) {
-	iSlice, err := q.Distinct(fieldName)
-	if err != nil {
+	iSlice, err := mongoColl.Distinct(ctx, fieldName, q.filter, opts)
+	if err = q.collection.handleErr(err); err != nil {
 		return stringSlice, err
 	}
 	stringSlice = make([]string, len(iSlice))
@@ -235,15 +354,37 @@ func (q *FindQuery) DistinctStrings(fieldName string) (stringSlice []string, err
 		}
 	}
 	if q.sortFields != nil {
-		m := q.sortFields.Map()
-		if _, found := m[fieldName]; found {
-			// A sort was specified on this field
-			sort.Strings(stringSlice)
+		for _, sortFieldE := range *q.sortFields {
+			reverseSort := false
+			if sortFieldE.Key == fieldName {
+				sort.Strings(stringSlice)
+				if !reverseSort {
+					// If the sort wasn't specified in the provided fieldName, use the sort value from the bson.E value
+					reverseSort = sortFieldE.Value.(int) == -1
+				}
+
+				if reverseSort {
+					sort.Sort(sort.Reverse(sort.StringSlice(stringSlice)))
+				}
+				break
+			}
 		}
-		if _, found := m["-"+fieldName]; found {
-			// A reverse sort was specified on this field
-			sort.Sort(sort.Reverse(sort.StringSlice(stringSlice)))
+	}
+
+	if q.skip != nil && *q.skip > 0 {
+		if len(stringSlice) > int(*q.skip) {
+			// The slice is longer than the skip
+			// Walk the slice to the specified skip
+			stringSlice = stringSlice[int(*q.skip):]
+		} else {
+			// The slice is greater or equal to the skip - return nothing
+			stringSlice = []string{}
 		}
+	}
+
+	if q.limit != nil && *q.limit >= 0 && len(stringSlice) > int(*q.limit) {
+		// Trim the slice using limit
+		stringSlice = stringSlice[0:int(*q.limit)]
 	}
 	return stringSlice, err
 }

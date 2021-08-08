@@ -7,8 +7,8 @@ require (
 	github.com/aws/aws-sdk-go v1.36.16 // indirect
 	github.com/klauspost/compress v1.11.4 // indirect
 	github.com/rs/zerolog v1.20.0 // indirect
-	github.com/sirupsen/logrus v1.7.0
-	github.com/stretchr/testify v1.6.1
+	github.com/sirupsen/logrus v1.8.1
+	github.com/stretchr/testify v1.7.0
 	github.com/tophergopher/mongotest v0.0.24
 	go.mongodb.org/mongo-driver v1.7.1
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad // indirect

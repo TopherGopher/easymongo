@@ -37,9 +37,23 @@ func TestGetDatabase(t *testing.T) {
 	})
 	t.Run("db.CollectionNames", func(t *testing.T) {
 		is := assert.New(t)
-		collNames, err := conn.Database(dbName).CollectionNames()
-		is.NoError(err, "Couldn't find the collection names")
+		collNames := conn.Database(dbName).CollectionNames()
 		is.Len(collNames, 1, "There should only be one collection present")
+	})
+	t.Run("db.ListCollections", func(t *testing.T) {
+		is := assert.New(t)
+		colls, err := conn.Database(dbName).ListCollections()
+		is.NoError(err)
+		is.Len(colls, 1, "There should only be one collection present")
+		if len(colls) != 1 || err != nil {
+			t.FailNow()
+		}
+		is.NotNil(colls[0])
+		if colls[0] == nil {
+			t.FailNow()
+		}
+		// Now just try a standard Count() operation on that collection object
+		is.Equal("enemies", colls[0].Name(), "The collection name on the test appears to be unset. This appears to be an improperly initialized Collection object.")
 	})
 	t.Run("db.ListCollections", func(t *testing.T) {
 		is := assert.New(t)

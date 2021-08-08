@@ -13,6 +13,7 @@ import (
 var conn *mongotest.TestConnection
 
 func setup(t *testing.T) {
+	t.Helper()
 	is := assert.New(t)
 	var err error
 	conn, err = mongotest.NewTestConnection(true)
@@ -25,6 +26,7 @@ func setup(t *testing.T) {
 
 }
 func teardown(t *testing.T) {
+	t.Helper()
 	if conn != nil {
 		err := conn.KillMongoContainer()
 		if err != nil {
@@ -46,6 +48,7 @@ type enemy struct {
 
 // Create some test data
 func createBatmanArchive(t *testing.T) *easymongo.Collection {
+	t.Helper()
 	is := assert.New(t)
 	dbName := "batman_archive"
 	collName := "enemies"

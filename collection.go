@@ -19,6 +19,11 @@ type Collection struct {
 	mongoColl      *mongo.Collection
 }
 
+// Name returns the name of the Collection in scope
+func (c *Collection) Name() string {
+	return c.collectionName
+}
+
 // Connection returns the connection associated with this collection.
 func (c *Collection) Connection() *Connection {
 	return c.database.connection

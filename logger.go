@@ -24,6 +24,10 @@ type DefaultLogger struct {
 }
 
 // NewDefaultLogger returns a DefaultLogger, which implements the Logger interface
+// Under the covers, DefaultLogger calls out to logrus using TextFormatter set
+// to the debug level.
+// If you don't want this behavior, simply implement an interface similar to this one
+// that supports Debugf() and Errorf() calls.
 func NewDefaultLogger() *DefaultLogger {
 	l := logrus.New().WithField("src", "easymongo")
 	l.Logger.SetFormatter(&logrus.TextFormatter{

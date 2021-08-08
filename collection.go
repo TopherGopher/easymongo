@@ -30,6 +30,9 @@ func (c *Collection) Connection() *Connection {
 }
 
 // defaultQueryCtx returns the appropriate context using the default timeout specified at connection time.
+// This will generate a context from the `Connection.MongoOptions.defaultQueryTimeout`
+// If attempting to generate a context from a Query function, instead of this
+// use Query.getContext(). That will also account for any user provided context.
 func (c *Collection) defaultQueryCtx() (context.Context, context.CancelFunc) {
 	return c.database.connection.defaultQueryCtx()
 }

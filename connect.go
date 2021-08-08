@@ -36,6 +36,7 @@ type MongoConnectOptions struct {
 	connectionFlag             *ConnectionFlag
 	// Controls whether debug printing is enabled
 	debugMode bool
+	auth      *options.Credential
 }
 
 // // RawMongoResult is used to represent the raw result that was returned from mongo
@@ -80,6 +81,9 @@ func (conn *Connection) clientOptions() *options.ClientOptions {
 		opts = conn.mongoOptions.connectionFlag.mongoDriverClientOptions().ApplyURI(conn.mongoOptions.mongoURI)
 	} else {
 		opts = DefaultAnywhere.mongoDriverClientOptions().ApplyURI(conn.mongoOptions.mongoURI)
+	}
+	if conn.mongoOptions.auth != nil {
+		opts.SetAuth(*conn.mongoOptions.auth)
 	}
 
 	registry := bson.NewRegistryBuilder()

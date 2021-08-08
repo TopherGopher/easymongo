@@ -64,9 +64,16 @@ func (db *Database) ListCollections() ([]*Collection, error) {
 // TODO: DB.GridFS
 // func (db *Database) GridFS(prefix string) *GridFS {return }
 // TODO: DB.Run
-// func (db *Database) Run(cmd interface{}, result interface{}) error {return }
+func (db *Database) Run(cmd interface{}, result interface{}) error {
+	ctx, cancelFunc := db.connection.defaultQueryCtx()
+	defer cancelFunc()
+	return db.mongoDB.RunCommand(ctx, cmd).Decode(result)
+}
+
 // TODO: DB.Login
-// func (db *Database) Login(user, pass string) error {return }
+// func (db *Database) Login(user, pass string) error {
+// 	return
+// }
 // TODO: DB.Logout
 // func (db *Database) Logout() {return }
 // TODO: DB.UpsertUser

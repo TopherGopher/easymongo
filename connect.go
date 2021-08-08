@@ -344,12 +344,13 @@ func (conn *Connection) MongoURI() string {
 }
 
 // Ping attempts to ping the mongo instance
+// It uses the default ReadPreference specified
+// by the connect's ClientOptions.
 func (conn *Connection) Ping() (err error) {
 	ctx, cancel := conn.operationCtx()
 	defer cancel()
 
-	// TODO: Get readpref from singleton
-	err = conn.client.Ping(ctx, readpref.PrimaryPreferred())
+	err = conn.client.Ping(ctx, conn.clientOptions().ReadPreference)
 	if err != nil && errors.Is(err, context.DeadlineExceeded) {
 		err = ErrTimeoutOccurred
 	}
@@ -549,7 +550,6 @@ func (conn *Connection) DatabaseNames() []string {
 	defer cancel()
 	list, err := conn.client.ListDatabaseNames(ctx, bson.M{}, opts)
 	if err != nil {
-		// TODO: Should we return the error instead? If we don't change this, we should change CollectionNames()
 		list = []string{}
 	}
 	return list

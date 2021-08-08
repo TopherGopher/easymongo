@@ -38,12 +38,16 @@ func (db *Database) Collection(name string) *Collection {
 }
 
 // CollectionNames returns the names of the collections as strings.
-func (db *Database) CollectionNames() (collectionNames []string, err error) {
+// If no collections could be found, then an empty list is returned.
+func (db *Database) CollectionNames() []string {
 	ctx, cancelFunc := db.connection.operationCtx()
 	defer cancelFunc()
 	opts := options.ListCollections().SetNameOnly(true)
-	collectionNames, err = db.mongoDB.ListCollectionNames(ctx, bson.M{}, opts)
-	return collectionNames, err
+	collectionNames, err := db.mongoDB.ListCollectionNames(ctx, bson.M{}, opts)
+	if err != nil {
+		return []string{}
+	}
+	return collectionNames
 }
 
 // ListCollections returns a list of Collection objects that can be actioned against.

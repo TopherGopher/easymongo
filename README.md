@@ -17,7 +17,7 @@ foo := myObj{}
 err = conn.D("my_db").C("my_coll").Insert(&foo)
 ```
 Don't want to go through the arduous process of setting up a local mongo environment?
-You can spawn a container for the life of a test by using `tophergopher/mongotest`:
+You can spawn a container for the life of a test by using `github.com/tophergopher/mongotest`:
 ```go
 useDockerContainer := true
 // conn is a mongotest.TestConnection object which embeds an easymongo.Connection object
@@ -31,16 +31,89 @@ err = conn.Find().Sort("-name").Skip(1).Limit(2).One(bson.M{"name": bson.M{"$ne"
 conn.KillMongoContainer()
 ```
 
-## TODO: C.R.U.D. Examples
+## C.R.U.D. Examples
 Create/Read/Update/Destroy!
 #### Get Data into the Database
-Let's talk about first how to get data into the database.
+Let's talk about first how to get data into the database. Create a struct and add some reflection tags. These tags map to which field gets written. For example:
+```go
+type Enemy struct {
+	ID            primitive.ObjectID `bson:"_id"`
+	Name          string             `bson:"name"`
+	Notes         string             `bson:"notes,omitempty"`
+	LastEncounter *time.Time         `bson:"lastEncounter"`
+	Deceased      bool               `bson:"deceased"`
+	TimesFought   int                `bson:"timesFought"`
+	Evilness      float64            `bson:"evilness"`
+}
+var theJoker = Enemy{
+  ID: primitive.NewObjectID(),
+  Name: "The Joker",
+  Notes: "Follow-up about his scars.",
+  TimesFought: 3,
+  Evilness: 92.6,
+}
+```
+Cool - so now we have an object - let's insert it:
+```go
+  id, err := coll.Insert().One(theJoker)
+```
+Hooray! The document is in the database! Other typical endings for `Insert()` are `.Many()`, which will insert a slice of any type (but with a small O(N) overhead), and `.ManyFromInterfaceSlice()`, which doesn't incur the O(N) overhead but requires you to rewrite slices to a slice of interface.
+
 #### Find it and query it back
+Find the first matching document:
+```go
+  var eLookup Enemy
+  err := coll.Find(bson.M{"name": "The Joker"}).One(&eLookup)
+  fmt.Printf("%#v\n", eLookup)
+```
+If you examine `eLookup`, `eLookup` will be populated with all the initial metadata from `theJoker` object.
+
+Here's an example which leverages more flags to look-up all entries in the database and loads them into the `enemies` slice.
+```go
+  var enemies []Enemy
+  err := coll.Find(bson.M{}).Comment(
+			"Isn't this a fun query?").BatchSize(5).Projection(
+			bson.M{"name": 1}).Hint("name").Sort(
+			"-name").Skip(0).Limit(0).Timeout(time.Hour).All(&enemies)
+```
+
 #### Modify it
+Let's say Batman runs into the Joker, Alfred will need to update the last time they ran into eachother:
+```go
+	err := coll.Update(bson.M{"name": "The Joker"}, bson.M{
+			"$set": bson.M{"lastEncounter": time.Now()}}).One()
+```
+You'll note that we can end with either `.One()` or `.Many()`.
+
+#### Find and mutate
+What about if you want to return a document AND mutate it in some groovy way? `Find.OneAnd()` is your friend!
+```go
+  var enemyBefore Enemy
+  filter := bson.M{"name": "The Joker"}
+  set := bson.M{"$set": bson.M{"notes": "What's his endgame?"}}
+  err := coll.Find(filter).OneAnd(&enemyBefore).Update(set)
+```
+This would return the object prior to being updated. Other endings to `OneAnd` are `Replace()` and `Delete()`. If you want the resultant object _after_ the mutation takes place, then add `ReturnDocumentAfterModification()` to the chain.
+
 #### Delete it
-#### Examples
+When The Joker breaks into The Bat Cave, he wants to delete all of Batman's data. 
+This would delete all documents for enemies encountered in the last 6 months:
+```go
+  filter := bson.M{"lastEncounter": bson.M{
+    "$gte": time.Now().AddDate(0, -6, 0),
+    },
+  },
+  err := coll.Delete(filter).Many()
+```
+`.One()` is also available for individual document deletions using a filter.
 
-
+#### Mutate by ID
+A note that all of the various CRUD operators have ObjectID helpers
+`FindByID`, `DeleteByID`, `UpsertByID`, `ReplaceByID`. If you have the ObjectID in memory, it is one of the fastest methods for updating an object.
+```go
+  replacementEntry := Enemy{ID: theJoker.ID, Name: "Who knows?"}
+  err := coll.ReplaceByID(theJoker.ID, replacementEntry)
+```
 
 #### Why use `easymongo`?
 You should use `easymongo` if:

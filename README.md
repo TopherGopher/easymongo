@@ -14,7 +14,7 @@ a go limitation_)
 conn := easymongo.Connect("mongo://127.0.0.1")
 type myObj struct {}
 foo := myObj{}
-err = conn.D("my_db").C("my_coll").Insert(&foo)
+err = conn.D("my_db").C("my_coll").Insert().One(&foo)
 ```
 Don't want to go through the arduous process of setting up a local mongo environment?
 You can spawn a container for the life of a test by using `github.com/tophergopher/mongotest`:

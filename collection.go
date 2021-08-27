@@ -122,7 +122,7 @@ type CollectionStats struct {
 	TotalCollectionSizeInMB int `bson:"size"`
 	// CompressedCollectionSizeInMB is the total amount of storage allocated to this collection for document storage. The scale argument affects this value.
 	CompressedCollectionSizeInMB int `bson:"storageSize"`
-	DataCollectionSizeInMB       int `bson:"totalSize"`
+	DataCollectionSizeInMB       int `bson:"totalSize"`
 	// NumberOfDocuments is the number of objects or documents in this collection.
 	NumberOfDocuments int `bson:"count"`
 	// AverageObjectSizeBytes is the average size of an object in the collection.
@@ -137,12 +137,11 @@ type CollectionStats struct {
 // Stats returns various stats representing metadata in a collection.
 func (c *Collection) Stats(adminName, promptName, collectionName string) (*CollectionStats, error) {
 	stats := &CollectionStats{}
-	conn, _ := db.NewEventualConnection()
-	coll := conn.GetPromptDBByNames(adminName, promptName).Collection(consts.RESPONSES_COLLECTION)
-	err := coll.Database().RunCommand(context.Background(), bson.D{
-		{"collStats", collectionName},
+	err := c.MongoDriverCollection().Database().RunCommand(context.Background(), bson.D{
+		{Key: "collStats", Value: collectionName},
 		// Scale of 1 -> bytes being returned - let's use MB
-		{"scale", sizetypes.MEGABYTE},
+		// TODO: Use an iota const for this
+		{Key: "scale", Value: 1024 * 1024},
 	}).Decode(&stats)
 	stats.CollectionName = collectionName
 	return stats, err

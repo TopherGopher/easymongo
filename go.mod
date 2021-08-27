@@ -9,4 +9,4 @@ require (
 	go.mongodb.org/mongo-driver v1.7.1
 )
 
-// replace github.com/tophergopher/mongotest v0.0.27
+// replace github.com/tophergopher/mongotest v0.0.27 => ../mongotest

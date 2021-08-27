@@ -140,6 +140,8 @@ github.com/tophergopher/easymongo v0.0.27/go.mod h1:XSxjDEWj1DLvGbnclT/3cD3pdL7X
 github.com/tophergopher/easymongo v0.0.28/go.mod h1:I9B+QGqvo+KcejAWfnA4VAzUv7BAMvsL8nm/E0+0/xQ=
 github.com/tophergopher/mongotest v0.0.27 h1:rGhER/74ZpCNVM1WrJpTzlWlZOYL68IaTB4GNDgWqKY=
 github.com/tophergopher/mongotest v0.0.27/go.mod h1:1jsboVlnLzP9XxxXr2BtXh72OF3ORLOkDBiGCLl1SHA=
+github.com/tophergopher/mongotest v0.0.28 h1:2fX2EhY6vUzadrZs/OIsC3ej9s6TmgpQk8BHoSMJm+Q=
+github.com/tophergopher/mongotest v0.0.28/go.mod h1:/Vi7102CEflkrhB09yT7vZ216ucghQeL/ZaHq5SHcGU=
 github.com/xdg-go/pbkdf2 v1.0.0 h1:Su7DPu48wXMwC3bs7MCNG+z4FhcyEuz5dlvchbq0B0c=
 github.com/xdg-go/pbkdf2 v1.0.0/go.mod h1:jrpuAogTd400dnrH08LKmI/xc1MbPOebTwRqcT5RDeI=
 github.com/xdg-go/scram v1.0.2 h1:akYIkZ28e6A96dkWNJQu3nmCzH3YfwMPQExUYDaRv7w=

@@ -110,6 +110,44 @@ func (c *Collection) EstimatedCount() (int, error) {
 	return int(count), err
 }
 
+// CollectionStats represents various metadata about a collection
+// https://docs.mongodb.com/manual/reference/command/collStats/
+type CollectionStats struct {
+	// CollectionName is the name of the collection
+	CollectionName string `bson:"-"`
+	// Namespace is a string of db_name.collection_name
+	Namespace string `bson:"ns"`
+	// TotalCollectionSizeInMB is the total uncompressed size in memory of all records in a collection.
+	// The size does not include the size of any indexes associated with the collection, which the totalIndexSize field reports.
+	TotalCollectionSizeInMB int `bson:"size"`
+	// CompressedCollectionSizeInMB is the total amount of storage allocated to this collection for document storage. The scale argument affects this value.
+	CompressedCollectionSizeInMB int `bson:"storageSize"`
+	DataCollectionSizeInMB       int `bson:"totalSize"`
+	// NumberOfDocuments is the number of objects or documents in this collection.
+	NumberOfDocuments int `bson:"count"`
+	// AverageObjectSizeBytes is the average size of an object in the collection.
+	AverageObjectSizeBytes int `bson:"avgObjSize"`
+	// TotalIndexSizeMB is the total size of all indexes.
+	TotalIndexSizeMB int `bson:"totalIndexSize"`
+	// NumberOfIndexes is the number of indexes on the collection.
+	// All collections have at least one index on the _id field.
+	NumberOfIndexes int `bson:"nindexes"`
+}
+
+// Stats returns various stats representing metadata in a collection.
+func (c *Collection) Stats(adminName, promptName, collectionName string) (*CollectionStats, error) {
+	stats := &CollectionStats{}
+	conn, _ := db.NewEventualConnection()
+	coll := conn.GetPromptDBByNames(adminName, promptName).Collection(consts.RESPONSES_COLLECTION)
+	err := coll.Database().RunCommand(context.Background(), bson.D{
+		{"collStats", collectionName},
+		// Scale of 1 -> bytes being returned - let's use MB
+		{"scale", sizetypes.MEGABYTE},
+	}).Decode(&stats)
+	stats.CollectionName = collectionName
+	return stats, err
+}
+
 // FindByID wraps Find, ultimately executing `findOne("_id": providedID)`
 // Typically, the provided id is a pointer to a *primitive.ObjectID.
 func (c *Collection) FindByID(id interface{}, result interface{}) (err error) {

@@ -1,8 +1,39 @@
 # easymongo refactor plan
 
-Status: agreed design, implementation not started. The mongotest side of this
-work is described in `mongotest/PLAN.md`; easymongo depends on that landing
-first (it consumes `github.com/tophergopher/mongotest/v2`).
+The mongotest side of this work is described in `mongotest/PLAN.md`.
+
+## Where things stand
+
+**Branch**: `claude/mongotest-easymongo-refactor-wu2vhm`, which currently
+holds this plan and nothing else.
+**Tracking issue**: #13. The mongotest side is TopherGopher/mongotest#48.
+
+Nothing here has started, and it is blocked rather than merely unstarted.
+Issue #7 needs `github.com/tophergopher/mongotest/v2`, which does not exist
+yet: it is TopherGopher/mongotest#42, and that waits on the `mongod` package
+(#32 there), which is the next thing being built. Until the v2 module is
+tagged, #7 says to use a local `replace` to a sibling checkout.
+
+The order in the tracking issue matters and is not the issue-number order.
+The driver package cannot compile half-migrated, so #2 to #5 land together in
+one pull request, and #7 and #8 must land first so the test suite stops
+depending on the old `github.com/tophergopher/mongotest` v0.1.0 module, which
+imports easymongo and breaks the moment easymongo's types change.
+
+### What changed on the mongotest side that reaches here
+
+The Docker client there is now an interface, `dockerclient.Client`, with
+three implementations behind it: `dockerapi` (standard library, the default),
+`mobyclient` (wrapping the official client, its own module), and `dockermock`
+(test doubles). Issue #7's snippets were updated to name `dockerclient` for
+`IsNotFound`; the old `dockerapi` names still compile as aliases, so nothing
+here is broken by it.
+
+Also relevant when the helpers get written: mongotest now finds a Podman
+socket with no configuration, and TopherGopher/mongotest#52 covers reaching
+mongo when the daemon is a sibling container or behind a socket proxy. If the
+easymongo suite runs in CI with a proxied docker socket, that issue is the
+one to watch.
 
 ## Goals
 

@@ -132,7 +132,7 @@ func (conn *Connection) clientOptions() *options.ClientOptions {
 				out := map[string]interface{}{}
 				err := json.Unmarshal([]byte(e.Reply.String()), &out)
 				if err != nil {
-					conn.log.Errorf("Could not parse DB reply into a map: %w. Raw reply: %s", err, e.Reply)
+					conn.log.Errorf("Could not parse DB reply into a map: %v. Raw reply: %s", err, e.Reply)
 				}
 				// There's more in e.Reply than just the actual data that's returned to be unpacked if it's
 				// and aggregation query.

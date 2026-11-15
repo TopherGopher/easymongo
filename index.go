@@ -1,9 +1,9 @@
 package easymongo
 
 import (
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/bsonx"
 )
 
 // Index represents a helper for manipulating database indices
@@ -28,7 +28,7 @@ func (i *Index) Ensure() (indexName string, err error) {
 	// TODO: Index.Ensure() options
 	// TODO: Support compound index
 	indexName, err = i.collection.mongoColl.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bsonx.Doc{{Key: i.indexNames[0], Value: bsonx.Int32(1)}},
+		Keys: bson.D{{Key: i.indexNames[0], Value: int32(1)}},
 	}, opts)
 	err = i.collection.handleErr(err)
 	return indexName, err
